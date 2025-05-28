@@ -31,17 +31,16 @@
     .preview-row audio { max-width: 200px; }
     #radiusDisplay { margin-top: 0.5rem; font-style: italic; }
     .leaflet-control-container .leaflet-top.leaflet-left .leaflet-control-geocoder {
-      left: 50% !important;
-      transform: translateX(-50%);
       top: 10px !important;
-      position: absolute;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
       z-index: 1000;
+      position: absolute;
     }
-    .leaflet-top.leaflet-right {
-      top: 60px !important;
+    .leaflet-control-container .leaflet-top.leaflet-right {
+      top: 70px !important;
       right: 10px !important;
-      position: absolute;
-      z-index: 1000;
+      z-index: 999;
     }
   </style>
 </head>
