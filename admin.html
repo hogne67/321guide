@@ -97,8 +97,6 @@
     }
 
     let selectedCoords = null;
-    let marker = null;
-    let circle = null;
 
     function initMap() {
       const radiusInput = document.getElementById('radius');
@@ -130,13 +128,17 @@
         drawnItems.addLayer(layer);
 
         if (layer instanceof L.Circle) {
-          selectedCoords = layer.getLatLng();
+          const center = layer.getLatLng();
+          selectedCoords = center;
           radiusInput.value = Math.round(layer.getRadius());
+          const marker = L.marker(center).addTo(drawnItems);
         } else if (layer instanceof L.Marker) {
           selectedCoords = layer.getLatLng();
         } else if (layer instanceof L.Polygon) {
           const latlngs = layer.getLatLngs()[0];
-          selectedCoords = latlngs[0];
+          const center = L.polygon(latlngs).getBounds().getCenter();
+          selectedCoords = center;
+          const marker = L.marker(center).addTo(drawnItems);
         }
       });
     }
