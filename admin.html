@@ -162,13 +162,23 @@
         }
         drawnShape = event.overlay;
 
+        if (currentMarker) currentMarker.setMap(null);
+
         if (event.type === google.maps.drawing.OverlayType.CIRCLE) {
           valgtPosisjon = event.overlay.getCenter();
           document.getElementById("radius").value = Math.round(event.overlay.getRadius());
+          currentMarker = new google.maps.Marker({
+            position: valgtPosisjon,
+            map: map
+          });
         } else if (event.type === google.maps.drawing.OverlayType.POLYGON) {
           const bounds = new google.maps.LatLngBounds();
           event.overlay.getPath().forEach(p => bounds.extend(p));
           valgtPosisjon = bounds.getCenter();
+          currentMarker = new google.maps.Marker({
+            position: valgtPosisjon,
+            map: map
+          });
         }
       });
     }
