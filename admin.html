@@ -136,6 +136,7 @@
 
       const input = document.getElementById("search-input");
       const searchBox = new google.maps.places.SearchBox(input);
+
       map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
 
       map.addListener("bounds_changed", () => {
@@ -184,19 +185,32 @@
       google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
         if (drawnShape) drawnShape.setMap(null);
         drawnShape = event.overlay;
-        valgtPosisjon = event.overlay.getCenter ? event.overlay.getCenter().toJSON() : event.overlay.getPath().getArray().map(p => p.toJSON());
 
-        if (currentMarker) currentMarker.setMap(null);
-        let center = null;
         if (event.type === google.maps.drawing.OverlayType.CIRCLE) {
-          center = event.overlay.getCenter();
-        } else if (event.type === google.maps.drawing.OverlayType.POLYGON) {
+          valgtPosisjon = event.overlay.getCenter().toJSON();
+          if (currentMarker) currentMarker.setMap(null);
+          currentMarker = new google.maps.Marker({ position: valgtPosisjon, map });
+        }
+
+        if (event.type === google.maps.drawing.OverlayType.POLYGON) {
+          valgtPosisjon = event.overlay.getPath().getArray().map(p => p.toJSON());
+          if (currentMarker) currentMarker.setMap(null);
           const bounds = new google.maps.LatLngBounds();
           event.overlay.getPath().forEach(p => bounds.extend(p));
-          center = bounds.getCenter();
-        }
-        if (center) {
+          const center = bounds.getCenter();
           currentMarker = new google.maps.Marker({ position: center, map });
+
+          // Flytt markøren hvis polygon redigeres
+          google.maps.event.addListener(event.overlay.getPath(), 'set_at', () => {
+            const newBounds = new google.maps.LatLngBounds();
+            event.overlay.getPath().forEach(p => newBounds.extend(p));
+            currentMarker.setPosition(newBounds.getCenter());
+          });
+          google.maps.event.addListener(event.overlay.getPath(), 'insert_at', () => {
+            const newBounds = new google.maps.LatLngBounds();
+            event.overlay.getPath().forEach(p => newBounds.extend(p));
+            currentMarker.setPosition(newBounds.getCenter());
+          });
         }
       });
     }
