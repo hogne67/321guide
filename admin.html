@@ -83,10 +83,50 @@
     let drawnShape = null;
     let ruteId = new URLSearchParams(window.location.search).get("rute");
 
-    function updateMarkerPosition(pos) {
-      if (currentMarker) currentMarker.setMap(null);
-      currentMarker = new google.maps.Marker({ position: pos, map });
-    }
+    const bildeInput = document.getElementById('bilde');
+    const bildePreviewContainer = document.getElementById('imagePreviewContainer');
+    let bilder = [];
+    bildeInput.addEventListener('change', () => {
+      const nyeBilder = Array.from(bildeInput.files);
+      const tillatte = 5 - bilder.length;
+      const faktiskNye = nyeBilder.slice(0, tillatte);
+      faktiskNye.forEach(file => bilder.push(file));
+      bildePreviewContainer.innerHTML = "";
+      bilder.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          bildePreviewContainer.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    const lydfilInput = document.getElementById('lydfil');
+    const audioPlayer = document.getElementById('audioPlayer');
+    lydfilInput.addEventListener('change', () => {
+      const file = lydfilInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => audioPlayer.src = e.target.result;
+        reader.readAsDataURL(file);
+      }
+    });
+
+    const tittelInput = document.getElementById("tittel");
+    const tittelCounter = document.getElementById("tittelCounter");
+    tittelInput.addEventListener("input", () => {
+      tittelCounter.textContent = `${tittelInput.value.length} / 40 tegn`;
+    });
+
+    const beskrivelseInput = document.getElementById("beskrivelse");
+    const beskrivelseCounter = document.getElementById("beskrivelseCounter");
+    beskrivelseInput.addEventListener("input", () => {
+      const text = beskrivelseInput.value.trim();
+      const ord = text.length > 0 ? text.split(/\s+/).length : 0;
+      beskrivelseCounter.textContent = `${ord} ord, ${text.length} tegn`;
+    });
 
     function initMap() {
       const map = new google.maps.Map(document.getElementById("map"), {
@@ -96,6 +136,7 @@
 
       const input = document.getElementById("search-input");
       const searchBox = new google.maps.places.SearchBox(input);
+
       map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
 
       map.addListener("bounds_changed", () => {
@@ -146,26 +187,30 @@
         drawnShape = event.overlay;
 
         if (event.type === google.maps.drawing.OverlayType.CIRCLE) {
-          valgtPosisjon = drawnShape.getCenter().toJSON();
-          updateMarkerPosition(valgtPosisjon);
-
-          google.maps.event.addListener(drawnShape, 'center_changed', () => {
-            valgtPosisjon = drawnShape.getCenter().toJSON();
-            updateMarkerPosition(valgtPosisjon);
-          });
+          valgtPosisjon = event.overlay.getCenter().toJSON();
+          if (currentMarker) currentMarker.setMap(null);
+          currentMarker = new google.maps.Marker({ position: valgtPosisjon, map });
         }
 
         if (event.type === google.maps.drawing.OverlayType.POLYGON) {
-          const updatePolygonMarker = () => {
-            const bounds = new google.maps.LatLngBounds();
-            drawnShape.getPath().forEach(p => bounds.extend(p));
-            valgtPosisjon = drawnShape.getPath().getArray().map(p => p.toJSON());
-            updateMarkerPosition(bounds.getCenter());
-          };
+          valgtPosisjon = event.overlay.getPath().getArray().map(p => p.toJSON());
+          if (currentMarker) currentMarker.setMap(null);
+          const bounds = new google.maps.LatLngBounds();
+          event.overlay.getPath().forEach(p => bounds.extend(p));
+          const center = bounds.getCenter();
+          currentMarker = new google.maps.Marker({ position: center, map });
 
-          updatePolygonMarker();
-          google.maps.event.addListener(drawnShape.getPath(), 'set_at', updatePolygonMarker);
-          google.maps.event.addListener(drawnShape.getPath(), 'insert_at', updatePolygonMarker);
+          // Flytt markøren hvis polygon redigeres
+          google.maps.event.addListener(event.overlay.getPath(), 'set_at', () => {
+            const newBounds = new google.maps.LatLngBounds();
+            event.overlay.getPath().forEach(p => newBounds.extend(p));
+            currentMarker.setPosition(newBounds.getCenter());
+          });
+          google.maps.event.addListener(event.overlay.getPath(), 'insert_at', () => {
+            const newBounds = new google.maps.LatLngBounds();
+            event.overlay.getPath().forEach(p => newBounds.extend(p));
+            currentMarker.setPosition(newBounds.getCenter());
+          });
         }
       });
     }
@@ -174,4 +219,3 @@
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCPqEgpfkeKgc91eAbuO9LHjIAnhT7VR28&callback=initMap&libraries=places,drawing"></script>
 </body>
 </html>
-
