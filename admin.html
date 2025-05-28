@@ -9,31 +9,30 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <style>
-    body {
-      font-family: sans-serif;
-      margin: 2rem;
-      background: #f3f3f3;
-    }
+    body { font-family: sans-serif; margin: 0; background: #f3f3f3; }
+    .header { padding: 1rem 2rem; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .main { display: flex; padding: 2rem; gap: 2rem; flex-wrap: wrap; }
+    .form-left { flex: 1; min-width: 320px; }
+    .form-right { flex: 2; min-width: 500px; height: 600px; position: relative; }
     label { display: block; margin-top: 1rem; }
-    input, textarea, select { width: 100%; padding: 0.5rem; margin-top: 0.5rem; }
+    input, textarea { width: 100%; padding: 0.5rem; margin-top: 0.3rem; }
     button { margin-top: 1rem; padding: 0.7rem 1.5rem; }
-    #map { width: 100%; height: 500px; margin-top: 2rem; }
-    #imagePreview, #audioPlayer { margin-top: 1rem; }
-    .inline-preview { display: flex; align-items: center; gap: 1rem; }
-    .form-container { display: flex; flex-wrap: wrap; gap: 2rem; }
-    .form-left { flex: 1; min-width: 300px; }
-    .form-right { flex: 1; min-width: 300px; }
+    #map { width: 100%; height: 100%; border-radius: 6px; }
+    .inline-preview { display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem; }
+    .counter { font-size: 0.9rem; color: #555; margin-top: 0.2rem; }
   </style>
 </head>
 <body>
-  <h1>🛠️ Adminpanel for POI</h1>
-  <div class="form-container">
+  <div class="header">
+    <h1>🛠️ Adminpanel for POI</h1>
+  </div>
+  <div class="main">
     <div class="form-left">
-      <label for="tittel">Tittel</label>
-      <input id="tittel" type="text">
+      <label for="tittel">Tittel <span id="tittelCounter" class="counter">0 / 120 tegn</span></label>
+      <input id="tittel" type="text" maxlength="120">
 
-      <label for="beskrivelse">Beskrivelse</label>
-      <textarea id="beskrivelse"></textarea>
+      <label for="beskrivelse">Beskrivelse <span id="beskrivelseCounter" class="counter">0 ord, 0 tegn</span></label>
+      <textarea id="beskrivelse" rows="5"></textarea>
 
       <label for="bilde">Last opp bilde</label>
       <input id="bilde" type="file" accept="image/*">
@@ -46,13 +45,14 @@
       <button onclick="lagrePOI()">Lagre POI</button>
     </div>
     <div class="form-right">
+      <input id="searchBox" type="text" placeholder="Søk etter sted..." style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 300px; padding: 6px; z-index: 5;">
       <div id="map"></div>
     </div>
   </div>
 
   <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyCCx62HTelY5ejutv_loSxYRSUqaGZ-6Vw",
+      apiKey: "AIzaSyCPqEgpfkeKgc91eAbuO9LHjIAnhT7VR28",
       authDomain: "pois-75b5f.firebaseapp.com",
       projectId: "pois-75b5f",
       storageBucket: "pois-75b5f.appspot.com",
@@ -64,187 +64,22 @@
     const storage = firebase.storage();
     const auth = firebase.auth();
 
-    let valgtPosisjon = null;
-    let currentCircle = null;
-    let currentMarker = null;
-    let drawingManager;
-    let drawnShape = null;
-    let ruteId = new URLSearchParams(window.location.search).get("rute");
+    const tittelInput = document.getElementById("tittel");
+    const beskrivelseInput = document.getElementById("beskrivelse");
+    const tittelCounter = document.getElementById("tittelCounter");
+    const beskrivelseCounter = document.getElementById("beskrivelseCounter");
 
-    const bildeInput = document.getElementById('bilde');
-    const bildePreview = document.getElementById('imagePreview');
-    bildeInput.addEventListener('change', () => {
-      const file = bildeInput.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = e => bildePreview.src = e.target.result;
-        reader.readAsDataURL(file);
-      }
+    tittelInput.addEventListener("input", () => {
+      tittelCounter.textContent = `${tittelInput.value.length} / 120 tegn`;
     });
-
-    const lydfilInput = document.getElementById('lydfil');
-    const audioPlayer = document.getElementById('audioPlayer');
-    lydfilInput.addEventListener('change', () => {
-      const file = lydfilInput.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = e => audioPlayer.src = e.target.result;
-        reader.readAsDataURL(file);
-      }
+    beskrivelseInput.addEventListener("input", () => {
+      const text = beskrivelseInput.value.trim();
+      const wordCount = text === "" ? 0 : text.split(/\s+/).length;
+      const charCount = text.length;
+      beskrivelseCounter.textContent = `${wordCount} ord, ${charCount} tegn`;
     });
-
-    function initMap() {
-      const map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 60.39, lng: 5.32 },
-        zoom: 12,
-      });
-
-      const input = document.createElement("input");
-      input.type = "text";
-      input.placeholder = "Søk adresse";
-      input.style.cssText = "box-sizing: border-box; width: 300px; height: 40px; font-size: 16px; padding: 0 12px;";
-      map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
-
-      const searchBox = new google.maps.places.SearchBox(input);
-      map.addListener("bounds_changed", () => {
-        searchBox.setBounds(map.getBounds());
-      });
-
-      searchBox.addListener("places_changed", () => {
-        const places = searchBox.getPlaces();
-        if (places.length === 0) return;
-
-        const place = places[0];
-        if (!place.geometry) return;
-
-        map.panTo(place.geometry.location);
-        map.setZoom(15);
-      });
-
-      drawingManager = new google.maps.drawing.DrawingManager({
-        drawingMode: google.maps.drawing.OverlayType.CIRCLE,
-        drawingControl: true,
-        drawingControlOptions: {
-          position: google.maps.ControlPosition.TOP_RIGHT,
-          drawingModes: [
-            google.maps.drawing.OverlayType.CIRCLE,
-            google.maps.drawing.OverlayType.POLYGON
-          ],
-        },
-        circleOptions: {
-          fillColor: '#007bff',
-          fillOpacity: 0.3,
-          strokeColor: '#007bff',
-          strokeOpacity: 0.8,
-          strokeWeight: 2,
-          clickable: false,
-          editable: true,
-          draggable: true,
-          zIndex: 1
-        },
-        polygonOptions: {
-          fillColor: '#007bff',
-          fillOpacity: 0.3,
-          strokeColor: '#007bff',
-          strokeOpacity: 0.8,
-          strokeWeight: 2,
-          editable: true,
-          draggable: true,
-          zIndex: 1
-        }
-      });
-      drawingManager.setMap(map);
-
-      google.maps.event.addListener(drawingManager, 'overlaycomplete', (event) => {
-        if (drawnShape) {
-          drawnShape.setMap(null);
-        }
-        drawnShape = event.overlay;
-
-        if (currentMarker) currentMarker.setMap(null);
-
-        if (event.type === google.maps.drawing.OverlayType.CIRCLE) {
-          valgtPosisjon = event.overlay.getCenter();
-          currentMarker = new google.maps.Marker({
-            position: valgtPosisjon,
-            map: map
-          });
-
-          event.overlay.addListener('center_changed', () => {
-            valgtPosisjon = event.overlay.getCenter();
-            currentMarker.setPosition(valgtPosisjon);
-          });
-        } else if (event.type === google.maps.drawing.OverlayType.POLYGON) {
-          const bounds = new google.maps.LatLngBounds();
-          event.overlay.getPath().forEach(p => bounds.extend(p));
-          valgtPosisjon = bounds.getCenter();
-          currentMarker = new google.maps.Marker({
-            position: valgtPosisjon,
-            map: map
-          });
-
-          google.maps.event.addListener(event.overlay.getPath(), 'set_at', () => {
-            const newBounds = new google.maps.LatLngBounds();
-            event.overlay.getPath().forEach(p => newBounds.extend(p));
-            valgtPosisjon = newBounds.getCenter();
-            currentMarker.setPosition(valgtPosisjon);
-          });
-          google.maps.event.addListener(event.overlay.getPath(), 'insert_at', () => {
-            const newBounds = new google.maps.LatLngBounds();
-            event.overlay.getPath().forEach(p => newBounds.extend(p));
-            valgtPosisjon = newBounds.getCenter();
-            currentMarker.setPosition(valgtPosisjon);
-          });
-        }
-      });
-    }
-
-    function lagrePOI() {
-      const tittel = document.getElementById("tittel").value;
-      const beskrivelse = document.getElementById("beskrivelse").value;
-      const bilde = bildeInput.files[0];
-      const lydfil = lydfilInput.files[0];
-
-      if (!valgtPosisjon || !tittel) {
-        alert("Du må velge posisjon og fylle inn tittel");
-        return;
-      }
-
-      const poiRef = db.collection("pois").doc();
-
-      const opplastinger = [];
-      let bildeUrl = "";
-      let lydUrl = "";
-
-      if (bilde) {
-        const bildeRef = storage.ref().child(`bilder/${poiRef.id}`);
-        opplastinger.push(
-          bildeRef.put(bilde).then(snapshot => snapshot.ref.getDownloadURL().then(url => bildeUrl = url))
-        );
-      }
-      if (lydfil) {
-        const lydRef = storage.ref().child(`lyd/${poiRef.id}`);
-        opplastinger.push(
-          lydRef.put(lydfil).then(snapshot => snapshot.ref.getDownloadURL().then(url => lydUrl = url))
-        );
-      }
-
-      Promise.all(opplastinger).then(() => {
-        poiRef.set({
-          tittel,
-          beskrivelse,
-          lat: valgtPosisjon.lat(),
-          lng: valgtPosisjon.lng(),
-          bildeUrl,
-          lydUrl,
-          ruteId: ruteId || null,
-        }).then(() => {
-          alert("POI lagret!");
-          window.location.reload();
-        });
-      });
-    }
   </script>
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCPqEgpfkeKgc91eAbuO9LHjIAnhT7VR28&callback=initMap&libraries=places,drawing"></script>
+
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCPqEgpfkeKgc91eAbuO9LHjIAnhT7VR28&callback=initMap&libraries=places,drawing"></script>
 </body>
 </html>
