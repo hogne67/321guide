@@ -94,7 +94,7 @@
     document.getElementById('poiForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const status = document.getElementById("status");
-      status.textContent = "⏳ Laster opp filer...";
+      status.textContent = "⏳ Laster opp bilde...";
 
       const title = this.title.value;
       const description = this.description.value;
@@ -105,16 +105,19 @@
       const imageFile = document.getElementById('imageFile').files[0];
       const audioFile = document.getElementById('audioFile').files[0];
 
+      if (!imageFile || !audioFile) {
+        status.textContent = "❌ Du må velge både bilde og lydfil.";
+        return;
+      }
+
       try {
         const imageRef = storage.ref().child(`images/${Date.now()}_${imageFile.name}`);
-        const audioRef = storage.ref().child(`audio/${Date.now()}_${audioFile.name}`);
-
-        const [imageSnap, audioSnap] = await Promise.all([
-          imageRef.put(imageFile),
-          audioRef.put(audioFile)
-        ]);
-
+        const imageSnap = await imageRef.put(imageFile);
         const imageUrl = await imageSnap.ref.getDownloadURL();
+
+        status.textContent = "⏳ Laster opp lyd...";
+        const audioRef = storage.ref().child(`audio/${Date.now()}_${audioFile.name}`);
+        const audioSnap = await audioRef.put(audioFile);
         const audioUrl = await audioSnap.ref.getDownloadURL();
 
         const poi = { title, description, latitude, longitude, radius, imageUrl, audioUrl };
@@ -123,7 +126,7 @@
         status.textContent = "✅ Punkt lagt til i Firebase";
         this.reset();
       } catch (error) {
-        console.error("Feil ved lagring:", error);
+        console.error("Feil ved opplasting eller lagring:", error);
         status.textContent = "❌ Kunne ikke laste opp eller lagre punkt.";
       }
     });
