@@ -27,6 +27,8 @@
     .hidden { display: none; }
     #map { height: 400px; margin-top: 1rem; border-radius: 5px; }
     #radiusDisplay { margin-top: 0.5rem; font-style: italic; }
+    #preview { margin-top: 1rem; }
+    #preview img { max-width: 100%; max-height: 150px; margin-bottom: 1rem; }
   </style>
 </head>
 <body>
@@ -52,6 +54,8 @@
 
       <label for="audioFile">Last opp lyd (MP3)</label>
       <input type="file" id="audioFile" accept="audio/mpeg" required>
+
+      <div id="preview"></div>
 
       <label>Velg plassering på kartet</label>
       <div id="map"></div>
@@ -99,6 +103,25 @@
 
     let selectedCoords = null;
     let currentRadius = null;
+
+    document.getElementById('imageFile').addEventListener('change', function() {
+      const preview = document.getElementById('preview');
+      if (this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.innerHTML = `<img src="${e.target.result}" alt="Forhåndsvisning av bilde">`;
+        };
+        reader.readAsDataURL(this.files[0]);
+      }
+    });
+
+    document.getElementById('audioFile').addEventListener('change', function() {
+      const preview = document.getElementById('preview');
+      if (this.files[0]) {
+        const audioURL = URL.createObjectURL(this.files[0]);
+        preview.innerHTML += `<audio controls><source src="${audioURL}" type="audio/mpeg">Nettleseren din støtter ikke lydavspilling</audio>`;
+      }
+    });
 
     function initMap() {
       const map = L.map('map', { fullscreenControl: true }).setView([62.47, 6.15], 10);
@@ -189,6 +212,7 @@
         status.textContent = "✅ Punkt lagt til i Firebase";
         this.reset();
         selectedCoords = null;
+        document.getElementById('preview').innerHTML = "";
         document.getElementById('map').innerHTML = "";
         initMap();
       } catch (error) {
@@ -199,4 +223,3 @@
   </script>
 </body>
 </html>
-
