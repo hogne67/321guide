@@ -1,3 +1,5 @@
+// Endret versjon av adminpanelet med støtte for rutevalg via URL
+
 <!DOCTYPE html>
 <html lang="no">
 <head>
@@ -47,8 +49,9 @@
 <body>
   <div id="main-wrapper">
     <div class="form-container" id="form-container">
-      <h2>🛠️ Legg til nytt POI (punkt)</h2>
-      <form id="poiForm">
+      <h2>🛠️ Legg til nytt POI</h2>
+      <div id="ruteInfo"></div>
+      <form id="poiForm" style="display: none">
         <label for="title">Tittel</label>
         <input type="text" id="title" name="title" required>
 
@@ -76,83 +79,15 @@
   </div>
 
   <script>
-    document.getElementById('imageFile').addEventListener('change', function() {
-      const imagePreview = document.getElementById('imagePreview');
-      if (this.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          imagePreview.innerHTML = `<img src="${e.target.result}" alt="Bilde">`;
-        };
-        reader.readAsDataURL(this.files[0]);
-      }
-    });
-
-    document.getElementById('audioFile').addEventListener('change', function() {
-      const audioPreview = document.getElementById('audioPreview');
-      if (this.files[0]) {
-        const audioURL = URL.createObjectURL(this.files[0]);
-        audioPreview.innerHTML = `<audio controls><source src="${audioURL}" type="audio/mpeg"></audio>`;
-      }
-    });
-
-    function initMap() {
-      const map = L.map('map', {
-        fullscreenControl: true
-      }).setView([63.4305, 10.3951], 6);
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-      }).addTo(map);
-
-      const geocoder = L.Control.geocoder({
-        defaultMarkGeocode: false
-      })
-      .on('markgeocode', function(e) {
-        map.setView(e.geocode.center, 14);
-      })
-      .addTo(map);
-
-      const drawnItems = new L.FeatureGroup();
-      map.addLayer(drawnItems);
-
-      const drawControl = new L.Control.Draw({
-        edit: {
-          featureGroup: drawnItems
-        },
-        draw: {
-          marker: false,
-          polyline: false,
-          rectangle: false,
-          circle: true,
-          polygon: true
-        }
-      });
-      map.addControl(drawControl);
-
-      map.on(L.Draw.Event.CREATED, function (e) {
-        drawnItems.clearLayers();
-        const layer = e.layer;
-        drawnItems.addLayer(layer);
-
-        const type = e.layerType;
-        let center;
-
-        if (type === 'circle') {
-          center = layer.getLatLng();
-          const radius = layer.getRadius();
-          document.getElementById('radiusDisplay').textContent = `Radius: ${radius.toFixed(0)} meter`;
-          L.marker(center).addTo(drawnItems);
-        } else if (type === 'polygon') {
-          center = layer.getBounds().getCenter();
-          L.marker(center).addTo(drawnItems);
-          document.getElementById('radiusDisplay').textContent = `Område valgt.`;
-        }
-      });
+    const ruteId = new URLSearchParams(window.location.search).get("rute");
+    const form = document.getElementById("poiForm");
+    const info = document.getElementById("ruteInfo");
+    if (!ruteId) {
+      info.innerHTML = `<p style='color: red'>Ingen rute valgt. Gå tilbake og velg en rute først.</p>`;
+    } else {
+      info.innerHTML = `<p style='color: green'>Legger til punkt i valgt rute: <strong>${ruteId}</strong></p>`;
+      form.style.display = "block";
     }
-
-    document.addEventListener("DOMContentLoaded", function () {
-      initMap();
-    });
   </script>
 </body>
 </html>
