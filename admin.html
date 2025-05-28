@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="no">
 <head>
@@ -8,6 +7,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <style>
     body { font-family: sans-serif; background: #f2f2f2; padding: 2rem; }
     .form-container { background: white; padding: 2rem; max-width: 600px; margin: auto; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
@@ -37,11 +37,11 @@
       <label for="description">Beskrivelse</label>
       <textarea id="description" name="description" rows="4" required></textarea>
 
-      <label for="imageUrl">Bilde-URL</label>
-      <input type="url" id="imageUrl" name="imageUrl" required>
+      <label for="imageFile">Last opp bilde</label>
+      <input type="file" id="imageFile" accept="image/*" required>
 
-      <label for="audioUrl">Lyd-URL (MP3)</label>
-      <input type="url" id="audioUrl" name="audioUrl" required>
+      <label for="audioFile">Last opp lyd (MP3)</label>
+      <input type="file" id="audioFile" accept="audio/mpeg" required>
 
       <label for="latitude">Breddegrad (latitude)</label>
       <input type="number" step="any" id="latitude" name="latitude" required>
@@ -62,7 +62,7 @@
       apiKey: "AIzaSyCAPpamFocyVPlGnTl-mDBLxDDdNmLK4Xk",
       authDomain: "pois-75b5f.firebaseapp.com",
       projectId: "pois-75b5f",
-      storageBucket: "pois-75b5f.firebasestorage.app",
+      storageBucket: "pois-75b5f.appspot.com",
       messagingSenderId: "255931335310",
       appId: "1:255931335310:web:491d5eb8d484574962ffdf"
     };
@@ -70,6 +70,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
+    const storage = firebase.storage();
 
     auth.onAuthStateChanged(user => {
       if (user) {
@@ -85,9 +86,6 @@
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
       auth.signInWithEmailAndPassword(email, password)
-        .then(() => {
-          // auth state listener will handle the UI change
-        })
         .catch((error) => {
           document.getElementById('login-status').textContent = '❌ ' + error.message;
         });
@@ -95,24 +93,38 @@
 
     document.getElementById('poiForm').addEventListener('submit', async function(e) {
       e.preventDefault();
+      const status = document.getElementById("status");
+      status.textContent = "⏳ Laster opp filer...";
 
-      const poi = {
-        title: this.title.value,
-        description: this.description.value,
-        imageUrl: this.imageUrl.value,
-        audioUrl: this.audioUrl.value,
-        latitude: parseFloat(this.latitude.value),
-        longitude: parseFloat(this.longitude.value),
-        radius: parseInt(this.radius.value)
-      };
+      const title = this.title.value;
+      const description = this.description.value;
+      const latitude = parseFloat(this.latitude.value);
+      const longitude = parseFloat(this.longitude.value);
+      const radius = parseInt(this.radius.value);
+
+      const imageFile = document.getElementById('imageFile').files[0];
+      const audioFile = document.getElementById('audioFile').files[0];
 
       try {
+        const imageRef = storage.ref().child(`images/${Date.now()}_${imageFile.name}`);
+        const audioRef = storage.ref().child(`audio/${Date.now()}_${audioFile.name}`);
+
+        const [imageSnap, audioSnap] = await Promise.all([
+          imageRef.put(imageFile),
+          audioRef.put(audioFile)
+        ]);
+
+        const imageUrl = await imageSnap.ref.getDownloadURL();
+        const audioUrl = await audioSnap.ref.getDownloadURL();
+
+        const poi = { title, description, latitude, longitude, radius, imageUrl, audioUrl };
         await db.collection("pois").add(poi);
-        document.getElementById("status").textContent = "✅ Punkt lagt til i Firebase";
+
+        status.textContent = "✅ Punkt lagt til i Firebase";
         this.reset();
       } catch (error) {
         console.error("Feil ved lagring:", error);
-        document.getElementById("status").textContent = "❌ Kunne ikke lagre punkt.";
+        status.textContent = "❌ Kunne ikke laste opp eller lagre punkt.";
       }
     });
   </script>
