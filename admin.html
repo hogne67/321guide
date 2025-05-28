@@ -69,6 +69,7 @@
 
     let valgtPosisjon = null;
     let currentCircle = null;
+    let currentMarker = null;
     let ruteId = new URLSearchParams(window.location.search).get("rute");
 
     const bildeInput = document.getElementById('bilde');
@@ -99,11 +100,17 @@
         zoom: 12,
       });
 
+      const searchBox = new google.maps.places.SearchBox(document.createElement("input"));
+      searchBox.setBounds(map.getBounds());
+      map.controls[google.maps.ControlPosition.TOP_CENTER].push(searchBox.input);
+
       map.addListener("click", (e) => {
         valgtPosisjon = e.latLng;
         const radius = parseInt(document.getElementById("radius").value);
 
         if (currentCircle) currentCircle.setMap(null);
+        if (currentMarker) currentMarker.setMap(null);
+
         currentCircle = new google.maps.Circle({
           center: valgtPosisjon,
           radius: radius,
@@ -115,6 +122,11 @@
           strokeWeight: 2,
           draggable: true,
           editable: true,
+        });
+
+        currentMarker = new google.maps.Marker({
+          position: valgtPosisjon,
+          map: map
         });
       });
     }
@@ -167,6 +179,6 @@
       });
     }
   </script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCCx62HTelY5ejutv_loSxYRSUqaGZ-6Vw&callback=initMap"></script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCCx62HTelY5ejutv_loSxYRSUqaGZ-6Vw&callback=initMap&libraries=places"></script>
 </body>
 </html>
