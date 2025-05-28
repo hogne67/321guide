@@ -1,5 +1,3 @@
-// Endret versjon av adminpanelet med oppdatert layout og kartinitiering
-
 <!DOCTYPE html>
 <html lang="no">
 <head>
@@ -86,12 +84,57 @@
       }
     });
 
+    function initMap() {
+      const map = L.map('map', {
+        fullscreenControl: true
+      }).setView([63.4305, 10.3951], 6);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+
+      L.Control.geocoder().addTo(map);
+
+      const drawnItems = new L.FeatureGroup();
+      map.addLayer(drawnItems);
+
+      const drawControl = new L.Control.Draw({
+        edit: {
+          featureGroup: drawnItems
+        },
+        draw: {
+          marker: false,
+          polyline: false,
+          rectangle: false,
+          circle: true,
+          polygon: true
+        }
+      });
+      map.addControl(drawControl);
+
+      map.on(L.Draw.Event.CREATED, function (e) {
+        drawnItems.clearLayers();
+        const layer = e.layer;
+        drawnItems.addLayer(layer);
+
+        const type = e.layerType;
+        let center;
+
+        if (type === 'circle') {
+          center = layer.getLatLng();
+          const radius = layer.getRadius();
+          document.getElementById('radiusDisplay').textContent = `Radius: ${radius.toFixed(0)} meter`;
+          L.marker(center).addTo(drawnItems);
+        } else if (type === 'polygon') {
+          center = layer.getBounds().getCenter();
+          L.marker(center).addTo(drawnItems);
+          document.getElementById('radiusDisplay').textContent = `Område valgt.`;
+        }
+      });
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
-      if (typeof initMap === 'function') {
-        initMap();
-      } else {
-        console.warn("initMap() er ikke definert. Husk å inkludere funksjonen i denne filen eller via ekstern script.");
-      }
+      initMap();
     });
   </script>
 </body>
