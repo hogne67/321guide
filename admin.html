@@ -149,14 +149,19 @@
         drawnShape = event.overlay;
 
         if (event.type === google.maps.drawing.OverlayType.CIRCLE) {
-          const updateCircleMarker = () => {
-            valgtPosisjon = drawnShape.getCenter().toJSON();
-            updateMarkerPosition(drawnShape.getCenter());
-          };
+          valgtPosisjon = drawnShape.getCenter().toJSON();
+          updateMarkerPosition(drawnShape.getCenter());
 
-          updateCircleMarker();
-          google.maps.event.addListener(drawnShape, 'drag', updateCircleMarker);
-          google.maps.event.addListener(drawnShape, 'radius_changed', updateCircleMarker);
+          // Marker skal følge når sirkelen flyttes
+          google.maps.event.addListener(drawnShape, 'center_changed', () => {
+            updateMarkerPosition(drawnShape.getCenter());
+          });
+          google.maps.event.addListener(drawnShape, 'drag', () => {
+            updateMarkerPosition(drawnShape.getCenter());
+          });
+          google.maps.event.addListener(drawnShape, 'radius_changed', () => {
+            updateMarkerPosition(drawnShape.getCenter());
+          });
         }
 
         if (event.type === google.maps.drawing.OverlayType.POLYGON) {
