@@ -1,3 +1,5 @@
+// Endret versjon av adminpanelet med forbedret plassering av søkefelt og knapper
+
 <!DOCTYPE html>
 <html lang="no">
 <head>
@@ -30,14 +32,18 @@
     .preview-row img { max-height: 60px; border-radius: 4px; }
     .preview-row audio { max-width: 200px; }
     #radiusDisplay { margin-top: 0.5rem; font-style: italic; }
-    .leaflet-control-geocoder {
+    .leaflet-control-container .leaflet-top.leaflet-left .leaflet-control-geocoder {
       left: 50% !important;
       transform: translateX(-50%);
       top: 10px !important;
+      position: absolute;
+      z-index: 1000;
     }
     .leaflet-top.leaflet-right {
-      top: 60px;
-      right: 10px;
+      top: 60px !important;
+      right: 10px !important;
+      position: absolute;
+      z-index: 1000;
     }
   </style>
 </head>
