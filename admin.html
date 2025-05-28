@@ -8,6 +8,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     body { font-family: sans-serif; background: #f2f2f2; padding: 2rem; }
     .form-container { background: white; padding: 2rem; max-width: 600px; margin: auto; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
@@ -17,6 +19,7 @@
     button { margin-top: 1.5rem; background: #28a745; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 5px; cursor: pointer; }
     button:hover { background: #218838; }
     .hidden { display: none; }
+    #map { height: 300px; margin-top: 1rem; border-radius: 5px; }
   </style>
 </head>
 <body>
@@ -43,11 +46,8 @@
       <label for="audioFile">Last opp lyd (MP3)</label>
       <input type="file" id="audioFile" accept="audio/mpeg" required>
 
-      <label for="latitude">Breddegrad (latitude)</label>
-      <input type="number" step="any" id="latitude" name="latitude" required>
-
-      <label for="longitude">Lengdegrad (longitude)</label>
-      <input type="number" step="any" id="longitude" name="longitude" required>
+      <label>Velg plassering på kartet</label>
+      <div id="map"></div>
 
       <label for="radius">Trigger-radius i meter (f.eks. 30)</label>
       <input type="number" id="radius" name="radius" required>
@@ -76,6 +76,7 @@
       if (user) {
         document.getElementById('login-container').classList.add('hidden');
         document.getElementById('form-container').classList.remove('hidden');
+        initMap();
       } else {
         document.getElementById('login-container').classList.remove('hidden');
         document.getElementById('form-container').classList.add('hidden');
@@ -91,15 +92,36 @@
         });
     }
 
+    let selectedCoords = null;
+
+    function initMap() {
+      const map = L.map('map').setView([62.47, 6.15], 10);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+
+      let marker;
+      map.on('click', function(e) {
+        if (marker) marker.remove();
+        marker = L.marker(e.latlng).addTo(map);
+        selectedCoords = e.latlng;
+      });
+    }
+
     document.getElementById('poiForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const status = document.getElementById("status");
       status.textContent = "⏳ Laster opp bilde...";
 
+      if (!selectedCoords) {
+        status.textContent = "❌ Du må velge et punkt på kartet.";
+        return;
+      }
+
       const title = this.title.value;
       const description = this.description.value;
-      const latitude = parseFloat(this.latitude.value);
-      const longitude = parseFloat(this.longitude.value);
+      const latitude = selectedCoords.lat;
+      const longitude = selectedCoords.lng;
       const radius = parseInt(this.radius.value);
 
       const imageFile = document.getElementById('imageFile').files[0];
@@ -125,6 +147,9 @@
 
         status.textContent = "✅ Punkt lagt til i Firebase";
         this.reset();
+        selectedCoords = null;
+        document.getElementById('map').innerHTML = "";
+        initMap();
       } catch (error) {
         console.error("Feil ved opplasting eller lagring:", error);
         status.textContent = "❌ Kunne ikke laste opp eller lagre punkt.";
