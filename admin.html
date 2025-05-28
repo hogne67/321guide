@@ -139,6 +139,7 @@
           strokeWeight: 2,
           clickable: false,
           editable: true,
+          draggable: true,
           zIndex: 1
         },
         polygonOptions: {
@@ -148,6 +149,7 @@
           strokeOpacity: 0.8,
           strokeWeight: 2,
           editable: true,
+          draggable: true,
           zIndex: 1
         }
       });
@@ -167,6 +169,11 @@
             position: valgtPosisjon,
             map: map
           });
+
+          event.overlay.addListener('center_changed', () => {
+            valgtPosisjon = event.overlay.getCenter();
+            currentMarker.setPosition(valgtPosisjon);
+          });
         } else if (event.type === google.maps.drawing.OverlayType.POLYGON) {
           const bounds = new google.maps.LatLngBounds();
           event.overlay.getPath().forEach(p => bounds.extend(p));
@@ -174,6 +181,19 @@
           currentMarker = new google.maps.Marker({
             position: valgtPosisjon,
             map: map
+          });
+
+          google.maps.event.addListener(event.overlay.getPath(), 'set_at', () => {
+            const newBounds = new google.maps.LatLngBounds();
+            event.overlay.getPath().forEach(p => newBounds.extend(p));
+            valgtPosisjon = newBounds.getCenter();
+            currentMarker.setPosition(valgtPosisjon);
+          });
+          google.maps.event.addListener(event.overlay.getPath(), 'insert_at', () => {
+            const newBounds = new google.maps.LatLngBounds();
+            event.overlay.getPath().forEach(p => newBounds.extend(p));
+            valgtPosisjon = newBounds.getCenter();
+            currentMarker.setPosition(valgtPosisjon);
           });
         }
       });
