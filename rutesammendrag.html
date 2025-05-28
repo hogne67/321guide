@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruteoversikt</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <style>
+    body { font-family: sans-serif; background: #f9f9f9; padding: 2rem; }
+    .rute-header { display: flex; align-items: center; justify-content: space-between; }
+    .rute-info { max-width: 600px; }
+    img { max-width: 200px; border-radius: 8px; margin-top: 1rem; }
+    textarea, input { width: 100%; margin-top: 0.5rem; padding: 0.5rem; border: 1px solid #ccc; border-radius: 5px; }
+    #qrCode { margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <h1>🗺️ Rute-sammendrag</h1>
+  <div id="content">Laster inn...</div>
+
+  <script>
+    const firebaseConfig = {
+  apiKey: "AIzaSyCAPpamFocyVPlGnTl-mDBLxDDdNmLK4Xk",
+  authDomain: "pois-75b5f.firebaseapp.com",
+  projectId: "pois-75b5f",
+  storageBucket: "pois-75b5f.appspot.com",
+  messagingSenderId: "255931335310",
+  appId: "1:255931335310:web:491d5eb8d484574962ffdf"
+};
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const ruteId = new URLSearchParams(window.location.search).get("rute");
+    const contentDiv = document.getElementById("content");
+
+    if (!ruteId) {
+      contentDiv.innerHTML = '<p style="color:red">Ingen rute valgt.</p>';
+    } else {
+      db.collection("routes").doc(ruteId).get().then(doc => {
+        if (!doc.exists) {
+          contentDiv.innerHTML = '<p style="color:red">Rute ikke funnet.</p>';
+          return;
+        }
+        const data = doc.data();
+        const url = `https://321guide.vercel.app/rute.html?rute=${ruteId}`;
+
+        contentDiv.innerHTML = `
+          <div class="rute-info">
+            <h2>${data.navn}</h2>
+            <p>${data.beskrivelse || ''}</p>
+            <img src="${data.bildeUrl || ''}" alt="Rute-bilde">
+            <div id="qrCode"></div>
+            <p><a href="${url}" target="_blank">Vis frontend-side for ruten</a></p>
+          </div>
+        `;
+
+        QRCode.toCanvas(document.getElementById('qrCode'), url, { width: 200 });
+      });
+    }
+  </script>
+</body>
+</html>
