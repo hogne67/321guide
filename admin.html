@@ -85,13 +85,9 @@
 
     function updateMarkerPosition(pos) {
       if (!currentMarker) {
-        currentMarker = new google.maps.Marker({ 
-          position: pos,
-          map: map
-        });
-      } else {
-        currentMarker.setPosition(pos);
+        currentMarker = new google.maps.Marker({ map });
       }
+      currentMarker.setPosition(pos);
     }
 
     let map;
@@ -149,30 +145,22 @@
       drawingManager.setMap(map);
 
       google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
-        // Fjern eksisterende form og markør
-        if (drawnShape) {
-          drawnShape.setMap(null);
-          if (currentMarker) currentMarker.setMap(null);
-        }
-        
+        if (drawnShape) drawnShape.setMap(null);
         drawnShape = event.overlay;
 
         if (event.type === google.maps.drawing.OverlayType.CIRCLE) {
-          // Oppdater posisjon og opprett markør
           valgtPosisjon = drawnShape.getCenter().toJSON();
           updateMarkerPosition(drawnShape.getCenter());
 
-          // Definer funksjon for oppdatering av markør
-          const updateCircleMarker = () => {
+          drawnShape.addListener("center_changed", () => {
             updateMarkerPosition(drawnShape.getCenter());
-            valgtPosisjon = drawnShape.getCenter().toJSON();
-          };
-
-          // Legg til lyttere for alle typer endringer på sirkelen
-          google.maps.event.addListener(drawnShape, 'center_changed', updateCircleMarker);
-          google.maps.event.addListener(drawnShape, 'drag', updateCircleMarker);
-          google.maps.event.addListener(drawnShape, 'dragend', updateCircleMarker);
-          google.maps.event.addListener(drawnShape, 'radius_changed', updateCircleMarker);
+          });
+          drawnShape.addListener("dragend", () => {
+            updateMarkerPosition(drawnShape.getCenter());
+          });
+          drawnShape.addListener("radius_changed", () => {
+            updateMarkerPosition(drawnShape.getCenter());
+          });
         }
 
         if (event.type === google.maps.drawing.OverlayType.POLYGON) {
