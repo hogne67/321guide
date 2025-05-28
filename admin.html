@@ -17,7 +17,7 @@
     label { display: block; margin-top: 1rem; }
     input, textarea, select { width: 100%; padding: 0.5rem; margin-top: 0.5rem; }
     button { margin-top: 1rem; padding: 0.7rem 1.5rem; }
-    #map { width: 100%; height: 400px; margin-top: 2rem; }
+    #map { width: 100%; height: 500px; margin-top: 2rem; }
     #imagePreview, #audioPlayer { margin-top: 1rem; }
     .inline-preview { display: flex; align-items: center; gap: 1rem; }
     .form-container { display: flex; flex-wrap: wrap; gap: 2rem; }
@@ -36,7 +36,7 @@
       <textarea id="beskrivelse"></textarea>
 
       <label for="radius">Radius (meter)</label>
-      <input id="radius" type="number" value="50">
+      <input id="radius" type="number" value="50" disabled>
 
       <label for="bilde">Last opp bilde</label>
       <input id="bilde" type="file" accept="image/*">
@@ -70,6 +70,8 @@
     let valgtPosisjon = null;
     let currentCircle = null;
     let currentMarker = null;
+    let drawingManager;
+    let drawnShape = null;
     let ruteId = new URLSearchParams(window.location.search).get("rute");
 
     const bildeInput = document.getElementById('bilde');
@@ -100,34 +102,74 @@
         zoom: 12,
       });
 
-      const searchBox = new google.maps.places.SearchBox(document.createElement("input"));
-      searchBox.setBounds(map.getBounds());
-      map.controls[google.maps.ControlPosition.TOP_CENTER].push(searchBox.input);
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "Søk adresse";
+      input.style.cssText = "box-sizing: border-box; width: 300px; height: 40px; font-size: 16px; padding: 0 12px;";
+      map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
 
-      map.addListener("click", (e) => {
-        valgtPosisjon = e.latLng;
-        const radius = parseInt(document.getElementById("radius").value);
+      const searchBox = new google.maps.places.SearchBox(input);
+      map.addListener("bounds_changed", () => {
+        searchBox.setBounds(map.getBounds());
+      });
 
-        if (currentCircle) currentCircle.setMap(null);
-        if (currentMarker) currentMarker.setMap(null);
+      searchBox.addListener("places_changed", () => {
+        const places = searchBox.getPlaces();
+        if (places.length === 0) return;
 
-        currentCircle = new google.maps.Circle({
-          center: valgtPosisjon,
-          radius: radius,
-          map,
+        const place = places[0];
+        if (!place.geometry) return;
+
+        map.panTo(place.geometry.location);
+        map.setZoom(15);
+      });
+
+      drawingManager = new google.maps.drawing.DrawingManager({
+        drawingMode: google.maps.drawing.OverlayType.CIRCLE,
+        drawingControl: true,
+        drawingControlOptions: {
+          position: google.maps.ControlPosition.TOP_RIGHT,
+          drawingModes: [
+            google.maps.drawing.OverlayType.CIRCLE,
+            google.maps.drawing.OverlayType.POLYGON
+          ],
+        },
+        circleOptions: {
           fillColor: '#007bff',
           fillOpacity: 0.3,
           strokeColor: '#007bff',
           strokeOpacity: 0.8,
           strokeWeight: 2,
-          draggable: true,
+          clickable: false,
           editable: true,
-        });
+          zIndex: 1
+        },
+        polygonOptions: {
+          fillColor: '#007bff',
+          fillOpacity: 0.3,
+          strokeColor: '#007bff',
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          editable: true,
+          zIndex: 1
+        }
+      });
+      drawingManager.setMap(map);
 
-        currentMarker = new google.maps.Marker({
-          position: valgtPosisjon,
-          map: map
-        });
+      google.maps.event.addListener(drawingManager, 'overlaycomplete', (event) => {
+        if (drawnShape) {
+          drawnShape.setMap(null);
+        }
+        drawnShape = event.overlay;
+
+        if (event.type === google.maps.drawing.OverlayType.CIRCLE) {
+          valgtPosisjon = event.overlay.getCenter();
+          document.getElementById("radius").value = Math.round(event.overlay.getRadius());
+        } else if (event.type === google.maps.drawing.OverlayType.POLYGON) {
+          const bounds = new google.maps.LatLngBounds();
+          event.overlay.getPath().forEach(p => bounds.extend(p));
+          valgtPosisjon = bounds.getCenter();
+        }
       });
     }
 
@@ -179,6 +221,6 @@
       });
     }
   </script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCCx62HTelY5ejutv_loSxYRSUqaGZ-6Vw&callback=initMap&libraries=places"></script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCCx62HTelY5ejutv_loSxYRSUqaGZ-6Vw&callback=initMap&libraries=places,drawing"></script>
 </body>
 </html>
