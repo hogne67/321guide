@@ -77,8 +77,11 @@
     const bildePreviewContainer = document.getElementById('imagePreviewContainer');
     let bilder = [];
     bildeInput.addEventListener('change', () => {
+      const nyeBilder = Array.from(bildeInput.files);
+      const tillatte = 5 - bilder.length;
+      const faktiskNye = nyeBilder.slice(0, tillatte);
+      faktiskNye.forEach(file => bilder.push(file));
       bildePreviewContainer.innerHTML = "";
-      bilder = Array.from(bildeInput.files).slice(0, 5);
       bilder.forEach(file => {
         const reader = new FileReader();
         reader.onload = e => {
@@ -114,132 +117,8 @@
       const ord = text.length > 0 ? text.split(/\s+/).length : 0;
       beskrivelseCounter.textContent = `${ord} ord, ${text.length} tegn`;
     });
-
-    function initMap() {
-      const map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 60.39, lng: 5.32 },
-        zoom: 12,
-      });
-      const input = document.createElement("input");
-      input.type = "text";
-      input.placeholder = "Søk adresse";
-      input.style.cssText = "box-sizing: border-box; width: 300px; height: 40px; font-size: 16px; padding: 0 12px;";
-      map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
-
-      const searchBox = new google.maps.places.SearchBox(input);
-      map.addListener("bounds_changed", () => {
-        searchBox.setBounds(map.getBounds());
-      });
-
-      searchBox.addListener("places_changed", () => {
-        const places = searchBox.getPlaces();
-        if (places.length === 0) return;
-        const place = places[0];
-        if (!place.geometry) return;
-        map.panTo(place.geometry.location);
-        map.setZoom(15);
-      });
-
-      drawingManager = new google.maps.drawing.DrawingManager({
-        drawingMode: google.maps.drawing.OverlayType.CIRCLE,
-        drawingControl: true,
-        drawingControlOptions: {
-          position: google.maps.ControlPosition.TOP_RIGHT,
-          drawingModes: [
-            google.maps.drawing.OverlayType.CIRCLE,
-            google.maps.drawing.OverlayType.POLYGON
-          ],
-        },
-        circleOptions: {
-          fillColor: '#007bff', fillOpacity: 0.3,
-          strokeColor: '#007bff', strokeOpacity: 0.8,
-          strokeWeight: 2, clickable: false, editable: true,
-          draggable: true, zIndex: 1
-        },
-        polygonOptions: {
-          fillColor: '#007bff', fillOpacity: 0.3,
-          strokeColor: '#007bff', strokeOpacity: 0.8,
-          strokeWeight: 2, editable: true,
-          draggable: true, zIndex: 1
-        }
-      });
-      drawingManager.setMap(map);
-
-      google.maps.event.addListener(drawingManager, 'overlaycomplete', (event) => {
-        if (drawnShape) drawnShape.setMap(null);
-        drawnShape = event.overlay;
-        if (currentMarker) currentMarker.setMap(null);
-
-        if (event.type === google.maps.drawing.OverlayType.CIRCLE) {
-          valgtPosisjon = event.overlay.getCenter();
-          currentMarker = new google.maps.Marker({ position: valgtPosisjon, map });
-          event.overlay.addListener('center_changed', () => {
-            valgtPosisjon = event.overlay.getCenter();
-            currentMarker.setPosition(valgtPosisjon);
-          });
-        } else if (event.type === google.maps.drawing.OverlayType.POLYGON) {
-          const bounds = new google.maps.LatLngBounds();
-          event.overlay.getPath().forEach(p => bounds.extend(p));
-          valgtPosisjon = bounds.getCenter();
-          currentMarker = new google.maps.Marker({ position: valgtPosisjon, map });
-          google.maps.event.addListener(event.overlay.getPath(), 'set_at', () => {
-            const newBounds = new google.maps.LatLngBounds();
-            event.overlay.getPath().forEach(p => newBounds.extend(p));
-            valgtPosisjon = newBounds.getCenter();
-            currentMarker.setPosition(valgtPosisjon);
-          });
-          google.maps.event.addListener(event.overlay.getPath(), 'insert_at', () => {
-            const newBounds = new google.maps.LatLngBounds();
-            event.overlay.getPath().forEach(p => newBounds.extend(p));
-            valgtPosisjon = newBounds.getCenter();
-            currentMarker.setPosition(valgtPosisjon);
-          });
-        }
-      });
-    }
-
-    function lagrePOI() {
-      const tittel = document.getElementById("tittel").value;
-      const beskrivelse = document.getElementById("beskrivelse").value;
-      const lydfil = lydfilInput.files[0];
-
-      if (!valgtPosisjon || !tittel) {
-        alert("Du må velge posisjon og fylle inn tittel");
-        return;
-      }
-
-      const poiRef = db.collection("pois").doc();
-      const opplastinger = [];
-      const bildeUrls = [];
-      let lydUrl = "";
-
-      bilder.forEach((bilde, i) => {
-        const bildeRef = storage.ref().child(`bilder/${poiRef.id}_${i}`);
-        opplastinger.push(
-          bildeRef.put(bilde).then(snapshot => snapshot.ref.getDownloadURL().then(url => bildeUrls.push(url)))
-        );
-      });
-
-      if (lydfil) {
-        const lydRef = storage.ref().child(`lyd/${poiRef.id}`);
-        opplastinger.push(
-          lydRef.put(lydfil).then(snapshot => snapshot.ref.getDownloadURL().then(url => lydUrl = url))
-        );
-      }
-
-      Promise.all(opplastinger).then(() => {
-        poiRef.set({
-          tittel, beskrivelse,
-          lat: valgtPosisjon.lat(), lng: valgtPosisjon.lng(),
-          bildeUrls, lydUrl,
-          ruteId: ruteId || null,
-        }).then(() => {
-          alert("POI lagret!");
-          window.location.reload();
-        });
-      });
-    }
   </script>
+
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCPqEgpfkeKgc91eAbuO9LHjIAnhT7VR28&callback=initMap&libraries=places,drawing"></script>
 </body>
 </html>
