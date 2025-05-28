@@ -10,8 +10,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen@2.4.0/Control.FullScreen.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.fullscreen@2.4.0/Control.FullScreen.js"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
   <style>
     body { font-family: sans-serif; background: #f2f2f2; padding: 2rem; }
     .form-container { background: white; padding: 2rem; max-width: 600px; margin: auto; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
@@ -105,19 +107,36 @@
         attribution: '© OpenStreetMap'
       }).addTo(map);
 
-      map.on('click', function(e) {
-        if (marker) marker.remove();
-        if (circle) circle.remove();
-        marker = L.marker(e.latlng).addTo(map);
-        selectedCoords = e.latlng;
-        const radius = parseInt(radiusInput.value);
-        circle = L.circle(e.latlng, { radius: radius, color: 'blue', fillOpacity: 0.2 }).addTo(map);
-      });
+      const drawnItems = new L.FeatureGroup();
+      map.addLayer(drawnItems);
 
-      radiusInput.addEventListener('input', () => {
-        if (selectedCoords && circle) {
-          const newRadius = parseInt(radiusInput.value);
-          circle.setRadius(newRadius);
+      const drawControl = new L.Control.Draw({
+        draw: {
+          polyline: false,
+          rectangle: false,
+          marker: true,
+          circle: true,
+          polygon: true
+        },
+        edit: {
+          featureGroup: drawnItems
+        }
+      });
+      map.addControl(drawControl);
+
+      map.on(L.Draw.Event.CREATED, function (event) {
+        const layer = event.layer;
+        drawnItems.clearLayers();
+        drawnItems.addLayer(layer);
+
+        if (layer instanceof L.Circle) {
+          selectedCoords = layer.getLatLng();
+          radiusInput.value = Math.round(layer.getRadius());
+        } else if (layer instanceof L.Marker) {
+          selectedCoords = layer.getLatLng();
+        } else if (layer instanceof L.Polygon) {
+          const latlngs = layer.getLatLngs()[0];
+          selectedCoords = latlngs[0];
         }
       });
     }
