@@ -20,7 +20,7 @@
     body { font-family: sans-serif; background: #f2f2f2; margin: 0; padding: 0; }
     #main-wrapper { display: flex; flex-direction: row; height: 100vh; }
     .form-container { background: white; padding: 2rem; width: 40%; overflow-y: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    #map { flex-grow: 1; height: 100vh; }
+    #map { flex-grow: 1; height: 100vh; position: relative; }
     h2 { margin-bottom: 1rem; }
     label { display: block; margin-top: 1rem; }
     input, textarea { width: 100%; padding: 0.5rem; margin-top: 0.25rem; border: 1px solid #ccc; border-radius: 5px; }
@@ -30,7 +30,15 @@
     .preview-row img { max-height: 60px; border-radius: 4px; }
     .preview-row audio { max-width: 200px; }
     #radiusDisplay { margin-top: 0.5rem; font-style: italic; }
-    .hidden { display: none; }
+    .leaflet-control-geocoder {
+      left: 50% !important;
+      transform: translateX(-50%);
+      top: 10px !important;
+    }
+    .leaflet-top.leaflet-right {
+      top: 60px;
+      right: 10px;
+    }
   </style>
 </head>
 <body>
@@ -93,7 +101,13 @@
         attribution: '© OpenStreetMap'
       }).addTo(map);
 
-      L.Control.geocoder().addTo(map);
+      const geocoder = L.Control.geocoder({
+        defaultMarkGeocode: false
+      })
+      .on('markgeocode', function(e) {
+        map.setView(e.geocode.center, 14);
+      })
+      .addTo(map);
 
       const drawnItems = new L.FeatureGroup();
       map.addLayer(drawnItems);
