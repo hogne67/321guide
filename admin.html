@@ -24,6 +24,15 @@
     .form-left { flex: 1; min-width: 300px; }
     .form-right { flex: 1; min-width: 300px; }
     .counter { font-size: 0.8rem; color: #666; margin-top: 0.2rem; }
+    #search-input {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 5;
+      width: 300px;
+      padding: 8px;
+    }
   </style>
 </head>
 <body>
@@ -49,6 +58,7 @@
       <button onclick="lagrePOI()">Lagre POI</button>
     </div>
     <div class="form-right">
+      <input id="search-input" type="text" placeholder="Søk etter sted...">
       <div id="map"></div>
     </div>
   </div>
@@ -117,6 +127,69 @@
       const ord = text.length > 0 ? text.split(/\s+/).length : 0;
       beskrivelseCounter.textContent = `${ord} ord, ${text.length} tegn`;
     });
+
+    function initMap() {
+      const map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 60.3913, lng: 5.3221 },
+        zoom: 13,
+      });
+
+      const input = document.getElementById("search-input");
+      const searchBox = new google.maps.places.SearchBox(input);
+      map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
+
+      map.addListener("bounds_changed", () => {
+        searchBox.setBounds(map.getBounds());
+      });
+
+      searchBox.addListener("places_changed", () => {
+        const places = searchBox.getPlaces();
+        if (places.length === 0) return;
+        const place = places[0];
+        if (!place.geometry || !place.geometry.location) return;
+        map.panTo(place.geometry.location);
+        map.setZoom(15);
+      });
+
+      drawingManager = new google.maps.drawing.DrawingManager({
+        drawingMode: google.maps.drawing.OverlayType.CIRCLE,
+        drawingControl: true,
+        drawingControlOptions: {
+          position: google.maps.ControlPosition.TOP_RIGHT,
+          drawingModes: [
+            google.maps.drawing.OverlayType.CIRCLE,
+            google.maps.drawing.OverlayType.POLYGON,
+          ],
+        },
+        circleOptions: {
+          fillColor: "#ffff00",
+          fillOpacity: 0.2,
+          strokeWeight: 2,
+          clickable: false,
+          editable: true,
+          zIndex: 1,
+        },
+        polygonOptions: {
+          fillColor: "#00ff00",
+          fillOpacity: 0.2,
+          strokeWeight: 2,
+          clickable: false,
+          editable: true,
+          zIndex: 1,
+        },
+      });
+
+      drawingManager.setMap(map);
+
+      google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
+        if (drawnShape) drawnShape.setMap(null);
+        drawnShape = event.overlay;
+        valgtPosisjon = event.overlay.getCenter ? event.overlay.getCenter().toJSON() : event.overlay.getPath().getArray().map(p => p.toJSON());
+        if (currentMarker) currentMarker.setMap(null);
+        const center = event.overlay.getCenter ? event.overlay.getCenter() : event.overlay.getBounds().getCenter();
+        currentMarker = new google.maps.Marker({ position: center, map });
+      });
+    }
   </script>
 
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCPqEgpfkeKgc91eAbuO9LHjIAnhT7VR28&callback=initMap&libraries=places,drawing"></script>
