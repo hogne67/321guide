@@ -3,62 +3,170 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ruteoversikt</title>
+  <title>POI Adminpanel</title>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <style>
-    body { font-family: sans-serif; background: #f9f9f9; padding: 2rem; }
-    .rute-header { display: flex; align-items: center; justify-content: space-between; }
-    .rute-info { max-width: 600px; }
-    img { max-width: 200px; border-radius: 8px; margin-top: 1rem; }
-    textarea, input { width: 100%; margin-top: 0.5rem; padding: 0.5rem; border: 1px solid #ccc; border-radius: 5px; }
-    #qrCode { margin-top: 2rem; }
+    body {
+      font-family: sans-serif;
+      margin: 2rem;
+      background: #f3f3f3;
+    }
+    label { display: block; margin-top: 1rem; }
+    input, textarea, select { width: 100%; padding: 0.5rem; margin-top: 0.5rem; }
+    button { margin-top: 1rem; padding: 0.7rem 1.5rem; }
+    #map { width: 100%; height: 400px; margin-top: 2rem; }
+    #imagePreview, #audioPlayer { margin-top: 1rem; }
+    .inline-preview { display: flex; align-items: center; gap: 1rem; }
+    .form-container { display: flex; flex-wrap: wrap; gap: 2rem; }
+    .form-left { flex: 1; min-width: 300px; }
+    .form-right { flex: 1; min-width: 300px; }
   </style>
 </head>
 <body>
-  <h1>🗺️ Rute-sammendrag</h1>
-  <div id="content">Laster inn...</div>
+  <h1>🛠️ Adminpanel for POI</h1>
+  <div class="form-container">
+    <div class="form-left">
+      <label for="tittel">Tittel</label>
+      <input id="tittel" type="text">
+
+      <label for="beskrivelse">Beskrivelse</label>
+      <textarea id="beskrivelse"></textarea>
+
+      <label for="radius">Radius (meter)</label>
+      <input id="radius" type="number" value="50">
+
+      <label for="bilde">Last opp bilde</label>
+      <input id="bilde" type="file" accept="image/*">
+      <div class="inline-preview"><img id="imagePreview" src="" width="100"></div>
+
+      <label for="lydfil">Last opp lydfil</label>
+      <input id="lydfil" type="file" accept="audio/*">
+      <div class="inline-preview"><audio id="audioPlayer" controls></audio></div>
+
+      <button onclick="lagrePOI()">Lagre POI</button>
+    </div>
+    <div class="form-right">
+      <div id="map"></div>
+    </div>
+  </div>
 
   <script>
     const firebaseConfig = {
-  apiKey: "AIzaSyCAPpamFocyVPlGnTl-mDBLxDDdNmLK4Xk",
-  authDomain: "pois-75b5f.firebaseapp.com",
-  projectId: "pois-75b5f",
-  storageBucket: "pois-75b5f.appspot.com",
-  messagingSenderId: "255931335310",
-  appId: "1:255931335310:web:491d5eb8d484574962ffdf"
-};
+      apiKey: "AIzaSyCAPpamFocyVPlGnTl-mDBLxDDdNmLK4Xk",
+      authDomain: "pois-75b5f.firebaseapp.com",
+      projectId: "pois-75b5f",
+      storageBucket: "pois-75b5f.appspot.com",
+      messagingSenderId: "255931335310",
+      appId: "1:255931335310:web:491d5eb8d484574962ffdf"
+    };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const storage = firebase.storage();
+    const auth = firebase.auth();
 
-    const ruteId = new URLSearchParams(window.location.search).get("rute");
-    const contentDiv = document.getElementById("content");
+    let valgtPosisjon = null;
+    let currentCircle = null;
+    let ruteId = new URLSearchParams(window.location.search).get("rute");
 
-    if (!ruteId) {
-      contentDiv.innerHTML = '<p style="color:red">Ingen rute valgt.</p>';
-    } else {
-      db.collection("routes").doc(ruteId).get().then(doc => {
-        if (!doc.exists) {
-          contentDiv.innerHTML = '<p style="color:red">Rute ikke funnet.</p>';
-          return;
-        }
-        const data = doc.data();
-        const url = `https://321guide.vercel.app/rute.html?rute=${ruteId}`;
+    const bildeInput = document.getElementById('bilde');
+    const bildePreview = document.getElementById('imagePreview');
+    bildeInput.addEventListener('change', () => {
+      const file = bildeInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => bildePreview.src = e.target.result;
+        reader.readAsDataURL(file);
+      }
+    });
 
-        contentDiv.innerHTML = `
-          <div class="rute-info">
-            <h2>${data.navn}</h2>
-            <p>${data.beskrivelse || ''}</p>
-            <img src="${data.bildeUrl || ''}" alt="Rute-bilde">
-            <div id="qrCode"></div>
-            <p><a href="${url}" target="_blank">Vis frontend-side for ruten</a></p>
-          </div>
-        `;
+    const lydfilInput = document.getElementById('lydfil');
+    const audioPlayer = document.getElementById('audioPlayer');
+    lydfilInput.addEventListener('change', () => {
+      const file = lydfilInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => audioPlayer.src = e.target.result;
+        reader.readAsDataURL(file);
+      }
+    });
 
-        QRCode.toCanvas(document.getElementById('qrCode'), url, { width: 200 });
+    function initMap() {
+      const map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 60.39, lng: 5.32 },
+        zoom: 12,
+      });
+
+      map.addListener("click", (e) => {
+        valgtPosisjon = e.latLng;
+        const radius = parseInt(document.getElementById("radius").value);
+
+        if (currentCircle) currentCircle.setMap(null);
+        currentCircle = new google.maps.Circle({
+          center: valgtPosisjon,
+          radius: radius,
+          map,
+          fillColor: '#007bff',
+          fillOpacity: 0.3,
+          strokeColor: '#007bff',
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          draggable: true,
+          editable: true,
+        });
+      });
+    }
+
+    function lagrePOI() {
+      const tittel = document.getElementById("tittel").value;
+      const beskrivelse = document.getElementById("beskrivelse").value;
+      const radius = parseInt(document.getElementById("radius").value);
+      const bilde = bildeInput.files[0];
+      const lydfil = lydfilInput.files[0];
+
+      if (!valgtPosisjon || !tittel) {
+        alert("Du må velge posisjon og fylle inn tittel");
+        return;
+      }
+
+      const poiRef = db.collection("pois").doc();
+
+      const opplastinger = [];
+      let bildeUrl = "";
+      let lydUrl = "";
+
+      if (bilde) {
+        const bildeRef = storage.ref().child(`bilder/${poiRef.id}`);
+        opplastinger.push(
+          bildeRef.put(bilde).then(snapshot => snapshot.ref.getDownloadURL().then(url => bildeUrl = url))
+        );
+      }
+      if (lydfil) {
+        const lydRef = storage.ref().child(`lyd/${poiRef.id}`);
+        opplastinger.push(
+          lydRef.put(lydfil).then(snapshot => snapshot.ref.getDownloadURL().then(url => lydUrl = url))
+        );
+      }
+
+      Promise.all(opplastinger).then(() => {
+        poiRef.set({
+          tittel,
+          beskrivelse,
+          radius,
+          lat: valgtPosisjon.lat(),
+          lng: valgtPosisjon.lng(),
+          bildeUrl,
+          lydUrl,
+          ruteId: ruteId || null,
+        }).then(() => {
+          alert("POI lagret!");
+          window.location.reload();
+        });
       });
     }
   </script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap"></script>
 </body>
 </html>
