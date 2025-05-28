@@ -1,3 +1,8 @@
+// Endret versjon av adminpanelet med:
+// - automatisk skjuling av radius-input
+// - visning av radius i meter når man tegner sirkel
+// - fjernet støtte for frittstående markører
+
 <!DOCTYPE html>
 <html lang="no">
 <head>
@@ -24,6 +29,7 @@
     button:hover { background: #218838; }
     .hidden { display: none; }
     #map { height: 400px; margin-top: 1rem; border-radius: 5px; }
+    #radiusDisplay { margin-top: 0.5rem; font-style: italic; }
   </style>
 </head>
 <body>
@@ -52,9 +58,7 @@
 
       <label>Velg plassering på kartet</label>
       <div id="map"></div>
-
-      <label for="radius">Trigger-radius i meter (f.eks. 30)</label>
-      <input type="number" id="radius" name="radius" value="30" required>
+      <p id="radiusDisplay"></p>
 
       <button type="submit">➕ Legg til punkt</button>
     </form>
@@ -97,9 +101,9 @@
     }
 
     let selectedCoords = null;
+    let currentRadius = null;
 
     function initMap() {
-      const radiusInput = document.getElementById('radius');
       const map = L.map('map', { fullscreenControl: true }).setView([62.47, 6.15], 10);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
@@ -112,7 +116,7 @@
         draw: {
           polyline: false,
           rectangle: false,
-          marker: true,
+          marker: false,
           circle: true,
           polygon: true
         },
@@ -127,18 +131,21 @@
         drawnItems.clearLayers();
         drawnItems.addLayer(layer);
 
+        const radiusDisplay = document.getElementById("radiusDisplay");
+
         if (layer instanceof L.Circle) {
           const center = layer.getLatLng();
           selectedCoords = center;
-          radiusInput.value = Math.round(layer.getRadius());
-          const marker = L.marker(center).addTo(drawnItems);
-        } else if (layer instanceof L.Marker) {
-          selectedCoords = layer.getLatLng();
+          currentRadius = Math.round(layer.getRadius());
+          radiusDisplay.textContent = `Radius: ${currentRadius} meter`;
+          L.marker(center).addTo(drawnItems);
         } else if (layer instanceof L.Polygon) {
           const latlngs = layer.getLatLngs()[0];
           const center = L.polygon(latlngs).getBounds().getCenter();
           selectedCoords = center;
-          const marker = L.marker(center).addTo(drawnItems);
+          currentRadius = null;
+          radiusDisplay.textContent = `Område valgt (polygon)`;
+          L.marker(center).addTo(drawnItems);
         }
       });
     }
@@ -157,7 +164,7 @@
       const description = this.description.value;
       const latitude = selectedCoords.lat;
       const longitude = selectedCoords.lng;
-      const radius = parseInt(this.radius.value);
+      const radius = currentRadius ?? 30;
 
       const imageFile = document.getElementById('imageFile').files[0];
       const audioFile = document.getElementById('audioFile').files[0];
