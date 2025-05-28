@@ -1,93 +1,58 @@
-// Endret versjon av adminpanelet med støtte for rutevalg via URL
-
 <!DOCTYPE html>
 <html lang="no">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Adminpanel – Legg til nytt POI</title>
+  <title>Ruteoversikt</title>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen@2.4.0/Control.FullScreen.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.fullscreen@2.4.0/Control.FullScreen.js"></script>
-  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <style>
-    body { font-family: sans-serif; background: #f2f2f2; margin: 0; padding: 0; }
-    #main-wrapper { display: flex; flex-direction: row; height: 100vh; }
-    .form-container { background: white; padding: 2rem; width: 40%; overflow-y: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    #map { flex-grow: 1; height: 100vh; position: relative; }
-    h2 { margin-bottom: 1rem; }
-    label { display: block; margin-top: 1rem; }
-    input, textarea { width: 100%; padding: 0.5rem; margin-top: 0.25rem; border: 1px solid #ccc; border-radius: 5px; }
-    button { margin-top: 1.5rem; background: #28a745; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 5px; cursor: pointer; }
-    button:hover { background: #218838; }
-    .preview-row { display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem; }
-    .preview-row img { max-height: 60px; border-radius: 4px; }
-    .preview-row audio { max-width: 200px; }
-    #radiusDisplay { margin-top: 0.5rem; font-style: italic; }
-    .leaflet-control-container .leaflet-top.leaflet-left .leaflet-control-geocoder {
-      top: 10px !important;
-      left: 50% !important;
-      transform: translateX(-50%) !important;
-      z-index: 1000;
-      position: absolute;
-    }
-    .leaflet-control-container .leaflet-top.leaflet-right {
-      top: 70px !important;
-      right: 10px !important;
-      z-index: 999;
-    }
+    body { font-family: sans-serif; background: #f9f9f9; padding: 2rem; }
+    .rute-header { display: flex; align-items: center; justify-content: space-between; }
+    .rute-info { max-width: 600px; }
+    img { max-width: 200px; border-radius: 8px; margin-top: 1rem; }
+    textarea, input { width: 100%; margin-top: 0.5rem; padding: 0.5rem; border: 1px solid #ccc; border-radius: 5px; }
+    #qrCode { margin-top: 2rem; }
   </style>
 </head>
 <body>
-  <div id="main-wrapper">
-    <div class="form-container" id="form-container">
-      <h2>🛠️ Legg til nytt POI</h2>
-      <div id="ruteInfo"></div>
-      <form id="poiForm" style="display: none">
-        <label for="title">Tittel</label>
-        <input type="text" id="title" name="title" required>
-
-        <label for="description">Beskrivelse</label>
-        <textarea id="description" name="description" rows="4" required></textarea>
-
-        <label for="imageFile">Last opp bilde</label>
-        <div class="preview-row">
-          <input type="file" id="imageFile" accept="image/*" required>
-          <div id="imagePreview"></div>
-        </div>
-
-        <label for="audioFile">Last opp lyd (MP3)</label>
-        <div class="preview-row">
-          <input type="file" id="audioFile" accept="audio/mpeg" required>
-          <div id="audioPreview"></div>
-        </div>
-
-        <p id="radiusDisplay"></p>
-        <button type="submit">➕ Legg til punkt</button>
-      </form>
-      <p id="status"></p>
-    </div>
-    <div id="map"></div>
-  </div>
+  <h1>🗺️ Rute-sammendrag</h1>
+  <div id="content">Laster inn...</div>
 
   <script>
+    const firebaseConfig = { /* fyll inn din config her */ };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     const ruteId = new URLSearchParams(window.location.search).get("rute");
-    const form = document.getElementById("poiForm");
-    const info = document.getElementById("ruteInfo");
+    const contentDiv = document.getElementById("content");
+
     if (!ruteId) {
-      info.innerHTML = `<p style='color: red'>Ingen rute valgt. Gå tilbake og velg en rute først.</p>`;
+      contentDiv.innerHTML = '<p style="color:red">Ingen rute valgt.</p>';
     } else {
-      info.innerHTML = `<p style='color: green'>Legger til punkt i valgt rute: <strong>${ruteId}</strong></p>`;
-      form.style.display = "block";
+      db.collection("routes").doc(ruteId).get().then(doc => {
+        if (!doc.exists) {
+          contentDiv.innerHTML = '<p style="color:red">Rute ikke funnet.</p>';
+          return;
+        }
+        const data = doc.data();
+        const url = `https://321guide.vercel.app/rute.html?rute=${ruteId}`;
+
+        contentDiv.innerHTML = `
+          <div class="rute-info">
+            <h2>${data.navn}</h2>
+            <p>${data.beskrivelse || ''}</p>
+            <img src="${data.bildeUrl || ''}" alt="Rute-bilde">
+            <div id="qrCode"></div>
+            <p><a href="${url}" target="_blank">Vis frontend-side for ruten</a></p>
+          </div>
+        `;
+
+        QRCode.toCanvas(document.getElementById('qrCode'), url, { width: 200 });
+      });
     }
   </script>
 </body>
 </html>
+
