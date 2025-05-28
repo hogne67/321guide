@@ -35,9 +35,6 @@
       <label for="beskrivelse">Beskrivelse</label>
       <textarea id="beskrivelse"></textarea>
 
-      <label for="radius">Radius (meter)</label>
-      <input id="radius" type="number" value="50" disabled>
-
       <label for="bilde">Last opp bilde</label>
       <input id="bilde" type="file" accept="image/*">
       <div class="inline-preview"><img id="imagePreview" src="" width="100"></div>
@@ -166,7 +163,6 @@
 
         if (event.type === google.maps.drawing.OverlayType.CIRCLE) {
           valgtPosisjon = event.overlay.getCenter();
-          document.getElementById("radius").value = Math.round(event.overlay.getRadius());
           currentMarker = new google.maps.Marker({
             position: valgtPosisjon,
             map: map
@@ -186,7 +182,6 @@
     function lagrePOI() {
       const tittel = document.getElementById("tittel").value;
       const beskrivelse = document.getElementById("beskrivelse").value;
-      const radius = parseInt(document.getElementById("radius").value);
       const bilde = bildeInput.files[0];
       const lydfil = lydfilInput.files[0];
 
@@ -218,7 +213,6 @@
         poiRef.set({
           tittel,
           beskrivelse,
-          radius,
           lat: valgtPosisjon.lat(),
           lng: valgtPosisjon.lng(),
           bildeUrl,
