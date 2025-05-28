@@ -84,12 +84,15 @@
     let ruteId = new URLSearchParams(window.location.search).get("rute");
 
     function updateMarkerPosition(pos) {
-      if (currentMarker) currentMarker.setMap(null);
-      currentMarker = new google.maps.Marker({ position: pos, map });
+      if (!currentMarker) {
+        currentMarker = new google.maps.Marker({ map });
+      }
+      currentMarker.setPosition(pos);
     }
 
+    let map;
     function initMap() {
-      const map = new google.maps.Map(document.getElementById("map"), {
+      map = new google.maps.Map(document.getElementById("map"), {
         center: { lat: 60.3913, lng: 5.3221 },
         zoom: 13,
       });
@@ -146,18 +149,14 @@
         drawnShape = event.overlay;
 
         if (event.type === google.maps.drawing.OverlayType.CIRCLE) {
-          valgtPosisjon = drawnShape.getCenter().toJSON();
-          updateMarkerPosition(valgtPosisjon);
-
-          google.maps.event.addListener(drawnShape, 'drag', () => {
+          const updateCircleMarker = () => {
             valgtPosisjon = drawnShape.getCenter().toJSON();
-            updateMarkerPosition(valgtPosisjon);
-          });
+            updateMarkerPosition(drawnShape.getCenter());
+          };
 
-          google.maps.event.addListener(drawnShape, 'radius_changed', () => {
-            valgtPosisjon = drawnShape.getCenter().toJSON();
-            updateMarkerPosition(valgtPosisjon);
-          });
+          updateCircleMarker();
+          google.maps.event.addListener(drawnShape, 'drag', updateCircleMarker);
+          google.maps.event.addListener(drawnShape, 'radius_changed', updateCircleMarker);
         }
 
         if (event.type === google.maps.drawing.OverlayType.POLYGON) {
