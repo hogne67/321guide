@@ -33,6 +33,18 @@
       width: 300px;
       padding: 8px;
     }
+    #genererBeskrivelseBtn {
+      margin-top: 0.5rem;
+      background-color: #008cba;
+      color: white;
+      border: none;
+      padding: 0.6rem 1rem;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    #genererBeskrivelseBtn:hover {
+      background-color: #0073a6;
+    }
   </style>
 </head>
 <body>
@@ -64,150 +76,30 @@
     </div>
   </div>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCCx62HTelY5ejutv_loSxYRSUqaGZ-6Vw",
-      authDomain: "pois-75b5f.firebaseapp.com",
-      projectId: "pois-75b5f",
-      storageBucket: "pois-75b5f.appspot.com",
-      messagingSenderId: "255931335310",
-      appId: "1:255931335310:web:491d5eb8d484574962ffdf"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const storage = firebase.storage();
-    const auth = firebase.auth();
-
-    let valgtPosisjon = null;
-    let currentMarker = null;
-    let drawingManager;
-    let drawnShape = null;
-    let ruteId = new URLSearchParams(window.location.search).get("rute");
-
-    // ChatGPT-knapp
-    document.getElementById("genererBeskrivelseBtn").addEventListener("click", async () => {
-      const tittel = document.getElementById("tittel").value;
-      if (!tittel.trim()) {
-        alert("Skriv inn en tittel først!");
-        return;
-      }
-      const prompt = `Lag en kort og engasjerende beskrivelse for et punkt med tittelen: "${tittel}"`;
-      try {
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer DIN_API_NOKKEL_HER"
-          },
-          body: JSON.stringify({
-            model: "gpt-3.5-turbo",
-            messages: [{ role: "user", content: prompt }],
-            max_tokens: 150
-          })
-        });
-        const data = await response.json();
-        document.getElementById("beskrivelse").value = data.choices[0].message.content.trim();
-      } catch (err) {
-        alert("Kunne ikke hente beskrivelse: " + err.message);
-      }
-    });
-
-    function updateMarkerPosition(pos) {
-      if (!currentMarker) {
-        currentMarker = new google.maps.Marker({ map });
-      }
-      currentMarker.setPosition(pos);
-    }
-
-    let map;
-    function initMap() {
-      map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 60.3913, lng: 5.3221 },
-        zoom: 13,
-      });
-
-      const input = document.getElementById("search-input");
-      const searchBox = new google.maps.places.SearchBox(input);
-      map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
-
-      map.addListener("bounds_changed", () => {
-        searchBox.setBounds(map.getBounds());
-      });
-
-      searchBox.addListener("places_changed", () => {
-        const places = searchBox.getPlaces();
-        if (places.length === 0) return;
-        const place = places[0];
-        if (!place.geometry || !place.geometry.location) return;
-        map.panTo(place.geometry.location);
-        map.setZoom(15);
-      });
-
-      drawingManager = new google.maps.drawing.DrawingManager({
-        drawingMode: google.maps.drawing.OverlayType.CIRCLE,
-        drawingControl: true,
-        drawingControlOptions: {
-          position: google.maps.ControlPosition.TOP_RIGHT,
-          drawingModes: [
-            google.maps.drawing.OverlayType.CIRCLE,
-            google.maps.drawing.OverlayType.POLYGON,
-          ],
-        },
-        circleOptions: {
-          fillColor: "#ffff00",
-          fillOpacity: 0.2,
-          strokeWeight: 2,
-          editable: true,
-          draggable: true,
-          zIndex: 1,
-        },
-        polygonOptions: {
-          fillColor: "#00ff00",
-          fillOpacity: 0.2,
-          strokeWeight: 2,
-          editable: true,
-          draggable: true,
-          zIndex: 1,
-        },
-      });
-
-      drawingManager.setMap(map);
-
-      google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
-        if (drawnShape) drawnShape.setMap(null);
-        drawnShape = event.overlay;
-
-        if (event.type === google.maps.drawing.OverlayType.CIRCLE) {
-          valgtPosisjon = drawnShape.getCenter().toJSON();
-          updateMarkerPosition(drawnShape.getCenter());
-
-          drawnShape.addListener("center_changed", () => {
-            updateMarkerPosition(drawnShape.getCenter());
-          });
-          drawnShape.addListener("radius_changed", () => {
-            updateMarkerPosition(drawnShape.getCenter());
-          });
-          drawnShape.addListener("dragend", () => {
-            updateMarkerPosition(drawnShape.getCenter());
-          });
-        }
-
-        if (event.type === google.maps.drawing.OverlayType.POLYGON) {
-          const updatePolygonMarker = () => {
-            const bounds = new google.maps.LatLngBounds();
-            drawnShape.getPath().forEach(p => bounds.extend(p));
-            valgtPosisjon = drawnShape.getPath().getArray().map(p => p.toJSON());
-            updateMarkerPosition(bounds.getCenter());
-          };
-
-          updatePolygonMarker();
-          google.maps.event.addListener(drawnShape.getPath(), 'set_at', updatePolygonMarker);
-          google.maps.event.addListener(drawnShape.getPath(), 'insert_at', updatePolygonMarker);
-        }
-      });
-    }
-  </script>
-
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCPqEgpfkeKgc91eAbuO9LHjIAnhT7VR28&callback=initMap&libraries=places,drawing"></script>
+  <script>
+    const openaiApiKey = "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";
+    document.getElementById("genererBeskrivelseBtn").addEventListener("click", async () => {
+      const tittel = document.getElementById("tittel").value.trim();
+      if (!tittel) return alert("Skriv inn en tittel først!");
+      const prompt = `Skriv en engasjerende, kort og faktabasert turisttekst om dette stedet: ${tittel}`;
+
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${openaiApiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 200,
+        })
+      });
+      const data = await response.json();
+      const generatedText = data.choices?.[0]?.message?.content;
+      if (generatedText) document.getElementById("beskrivelse").value = generatedText;
+    });
+  </script>
 </body>
 </html>
