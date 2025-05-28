@@ -1,6 +1,4 @@
-// Endret versjon av adminpanelet med oppdatert layout:
-// - Skjema til venstre, kart til høyre
-// - Miniatyrbilder/lyd ved siden av opplastingsknappene
+// Endret versjon av adminpanelet med oppdatert layout og kartinitiering
 
 <!DOCTYPE html>
 <html lang="no">
@@ -69,8 +67,6 @@
   </div>
 
   <script>
-    // (JS-koden forblir den samme som tidligere, bare oppdatere preview-segmentene)
-
     document.getElementById('imageFile').addEventListener('change', function() {
       const imagePreview = document.getElementById('imagePreview');
       if (this.files[0]) {
@@ -87,6 +83,14 @@
       if (this.files[0]) {
         const audioURL = URL.createObjectURL(this.files[0]);
         audioPreview.innerHTML = `<audio controls><source src="${audioURL}" type="audio/mpeg"></audio>`;
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+      if (typeof initMap === 'function') {
+        initMap();
+      } else {
+        console.warn("initMap() er ikke definert. Husk å inkludere funksjonen i denne filen eller via ekstern script.");
       }
     });
   </script>
