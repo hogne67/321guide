@@ -22,7 +22,7 @@
     .inline-preview img { width: 100px; height: auto; object-fit: cover; }
     .form-container { display: flex; flex-wrap: wrap; gap: 2rem; }
     .form-left { flex: 1; min-width: 300px; }
-    .form-right { flex: 1; min-width: 300px; }
+    .form-right { flex: 1; min-width: 300px; position: relative; }
     .counter { font-size: 0.8rem; color: #666; margin-top: 0.2rem; }
     #search-input {
       position: absolute;
@@ -165,16 +165,16 @@
           fillColor: "#ffff00",
           fillOpacity: 0.2,
           strokeWeight: 2,
-          clickable: false,
           editable: true,
+          draggable: true,
           zIndex: 1,
         },
         polygonOptions: {
           fillColor: "#00ff00",
           fillOpacity: 0.2,
           strokeWeight: 2,
-          clickable: false,
           editable: true,
+          draggable: true,
           zIndex: 1,
         },
       });
@@ -185,9 +185,19 @@
         if (drawnShape) drawnShape.setMap(null);
         drawnShape = event.overlay;
         valgtPosisjon = event.overlay.getCenter ? event.overlay.getCenter().toJSON() : event.overlay.getPath().getArray().map(p => p.toJSON());
+
         if (currentMarker) currentMarker.setMap(null);
-        const center = event.overlay.getCenter ? event.overlay.getCenter() : event.overlay.getBounds().getCenter();
-        currentMarker = new google.maps.Marker({ position: center, map });
+        let center = null;
+        if (event.type === google.maps.drawing.OverlayType.CIRCLE) {
+          center = event.overlay.getCenter();
+        } else if (event.type === google.maps.drawing.OverlayType.POLYGON) {
+          const bounds = new google.maps.LatLngBounds();
+          event.overlay.getPath().forEach(p => bounds.extend(p));
+          center = bounds.getCenter();
+        }
+        if (center) {
+          currentMarker = new google.maps.Marker({ position: center, map });
+        }
       });
     }
   </script>
