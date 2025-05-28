@@ -46,6 +46,7 @@
       <label for="beskrivelse">Beskrivelse</label>
       <textarea id="beskrivelse"></textarea>
       <div id="beskrivelseCounter" class="counter">0 ord, 0 tegn</div>
+      <button id="genererBeskrivelseBtn">✨ Generer beskrivelse med ChatGPT</button>
 
       <label for="bilde">Last opp inntil 5 bilder</label>
       <input id="bilde" type="file" accept="image/*" multiple>
@@ -82,6 +83,34 @@
     let drawingManager;
     let drawnShape = null;
     let ruteId = new URLSearchParams(window.location.search).get("rute");
+
+    // ChatGPT-knapp
+    document.getElementById("genererBeskrivelseBtn").addEventListener("click", async () => {
+      const tittel = document.getElementById("tittel").value;
+      if (!tittel.trim()) {
+        alert("Skriv inn en tittel først!");
+        return;
+      }
+      const prompt = `Lag en kort og engasjerende beskrivelse for et punkt med tittelen: "${tittel}"`;
+      try {
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer DIN_API_NOKKEL_HER"
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 150
+          })
+        });
+        const data = await response.json();
+        document.getElementById("beskrivelse").value = data.choices[0].message.content.trim();
+      } catch (err) {
+        alert("Kunne ikke hente beskrivelse: " + err.message);
+      }
+    });
 
     function updateMarkerPosition(pos) {
       if (!currentMarker) {
