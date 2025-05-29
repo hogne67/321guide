@@ -108,38 +108,44 @@
       }
     });
 
+    let valgtPosisjon = null;
+    let currentMarker = null;
+
     function lagrePOI() {
       const tittel = document.getElementById("tittel").value.trim();
       const beskrivelse = document.getElementById("beskrivelse").value.trim();
       const lydfil = lydfilInput.files[0];
 
-      if (!tittel || !beskrivelse) {
-        alert("Tittel og beskrivelse må fylles ut.");
+      if (!tittel || !beskrivelse || !valgtPosisjon) {
+        alert("Tittel, beskrivelse og posisjon må fylles ut.");
         return;
       }
 
-      db.collection("poi").add({ tittel, beskrivelse, tidspunkt: firebase.firestore.FieldValue.serverTimestamp() })
-        .then(async docRef => {
-          const id = docRef.id;
-          const imageUrls = [];
+      db.collection("poi").add({
+        tittel,
+        beskrivelse,
+        posisjon: valgtPosisjon,
+        tidspunkt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(async docRef => {
+        const id = docRef.id;
+        const imageUrls = [];
 
-          for (let i = 0; i < bilder.length; i++) {
-            const snapshot = await storage.ref().child(`bilder/${id}_${i}`).put(bilder[i]);
-            const url = await snapshot.ref.getDownloadURL();
-            imageUrls.push(url);
-          }
+        for (let i = 0; i < bilder.length; i++) {
+          const snapshot = await storage.ref().child(`bilder/${id}_${i}`).put(bilder[i]);
+          const url = await snapshot.ref.getDownloadURL();
+          imageUrls.push(url);
+        }
 
-          let lydUrl = "";
-          if (lydfil) {
-            const snapshot = await storage.ref().child(`lydfiler/${id}`).put(lydfil);
-            lydUrl = await snapshot.ref.getDownloadURL();
-          }
+        let lydUrl = "";
+        if (lydfil) {
+          const snapshot = await storage.ref().child(`lydfiler/${id}`).put(lydfil);
+          lydUrl = await snapshot.ref.getDownloadURL();
+        }
 
-          await db.collection("poi").doc(id).update({ bilder: imageUrls, lydfil: lydUrl });
-          alert("POI lagret!");
-          location.reload();
-        })
-        .catch(err => alert("Feil ved lagring: " + err.message));
+        await db.collection("poi").doc(id).update({ bilder: imageUrls, lydfil: lydUrl });
+        alert("POI lagret!");
+        location.reload();
+      }).catch(err => alert("Feil ved lagring: " + err.message));
     }
 
     function initMap() {
@@ -164,8 +170,71 @@
         map.panTo(place.geometry.location);
         map.setZoom(15);
       });
+
+      const drawingManager = new google.maps.drawing.DrawingManager({
+        drawingMode: google.maps.drawing.OverlayType.CIRCLE,
+        drawingControl: true,
+        drawingControlOptions: {
+          position: google.maps.ControlPosition.TOP_RIGHT,
+          drawingModes: [
+            google.maps.drawing.OverlayType.CIRCLE,
+            google.maps.drawing.OverlayType.POLYGON,
+          ],
+        },
+        circleOptions: {
+          fillColor: "#00ff00",
+          fillOpacity: 0.2,
+          strokeWeight: 2,
+          editable: true,
+          draggable: true,
+        },
+        polygonOptions: {
+          fillColor: "#00ff00",
+          fillOpacity: 0.2,
+          strokeWeight: 2,
+          editable: true,
+          draggable: true,
+        },
+      });
+
+      drawingManager.setMap(map);
+
+      google.maps.event.addListener(drawingManager, "overlaycomplete", function(event) {
+        if (currentMarker) currentMarker.setMap(null);
+        let center;
+        if (event.type === "circle") {
+          const circle = event.overlay;
+          valgtPosisjon = circle.getCenter().toJSON();
+          center = circle.getCenter();
+          circle.addListener("center_changed", () => {
+            valgtPosisjon = circle.getCenter().toJSON();
+            currentMarker.setPosition(circle.getCenter());
+          });
+          circle.addListener("dragend", () => {
+            valgtPosisjon = circle.getCenter().toJSON();
+            currentMarker.setPosition(circle.getCenter());
+          });
+        } else if (event.type === "polygon") {
+          const bounds = new google.maps.LatLngBounds();
+          event.overlay.getPath().forEach(p => bounds.extend(p));
+          valgtPosisjon = event.overlay.getPath().getArray().map(p => p.toJSON());
+          center = bounds.getCenter();
+          event.overlay.getPath().addListener("set_at", () => {
+            const newBounds = new google.maps.LatLngBounds();
+            event.overlay.getPath().forEach(p => newBounds.extend(p));
+            currentMarker.setPosition(newBounds.getCenter());
+          });
+          event.overlay.getPath().addListener("insert_at", () => {
+            const newBounds = new google.maps.LatLngBounds();
+            event.overlay.getPath().forEach(p => newBounds.extend(p));
+            currentMarker.setPosition(newBounds.getCenter());
+          });
+        }
+        currentMarker = new google.maps.Marker({ position: center, map });
+      });
     }
   </script>
+
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCPqEgpfkeKgc91eAbuO9LHjIAnhT7VR28&callback=initMap&libraries=places,drawing"></script>
 </body>
 </html>
