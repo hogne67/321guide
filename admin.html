@@ -110,6 +110,7 @@
 
     let valgtPosisjon = null;
     let currentMarker = null;
+    let currentShape = null;
 
     function lagrePOI() {
       const tittel = document.getElementById("tittel").value.trim();
@@ -172,14 +173,11 @@
       });
 
       const drawingManager = new google.maps.drawing.DrawingManager({
-        drawingMode: google.maps.drawing.OverlayType.CIRCLE,
+        drawingMode: null,
         drawingControl: true,
         drawingControlOptions: {
           position: google.maps.ControlPosition.TOP_RIGHT,
-          drawingModes: [
-            google.maps.drawing.OverlayType.CIRCLE,
-            google.maps.drawing.OverlayType.POLYGON,
-          ],
+          drawingModes: ["circle", "polygon"],
         },
         circleOptions: {
           fillColor: "#00ff00",
@@ -200,36 +198,42 @@
       drawingManager.setMap(map);
 
       google.maps.event.addListener(drawingManager, "overlaycomplete", function(event) {
+        if (currentShape) currentShape.setMap(null);
         if (currentMarker) currentMarker.setMap(null);
+
+        currentShape = event.overlay;
+
         let center;
         if (event.type === "circle") {
-          const circle = event.overlay;
-          valgtPosisjon = circle.getCenter().toJSON();
-          center = circle.getCenter();
-          circle.addListener("center_changed", () => {
-            valgtPosisjon = circle.getCenter().toJSON();
-            currentMarker.setPosition(circle.getCenter());
+          valgtPosisjon = currentShape.getCenter().toJSON();
+          center = currentShape.getCenter();
+
+          currentShape.addListener("center_changed", () => {
+            valgtPosisjon = currentShape.getCenter().toJSON();
+            currentMarker.setPosition(currentShape.getCenter());
           });
-          circle.addListener("dragend", () => {
-            valgtPosisjon = circle.getCenter().toJSON();
-            currentMarker.setPosition(circle.getCenter());
+          currentShape.addListener("dragend", () => {
+            valgtPosisjon = currentShape.getCenter().toJSON();
+            currentMarker.setPosition(currentShape.getCenter());
           });
         } else if (event.type === "polygon") {
           const bounds = new google.maps.LatLngBounds();
-          event.overlay.getPath().forEach(p => bounds.extend(p));
-          valgtPosisjon = event.overlay.getPath().getArray().map(p => p.toJSON());
+          currentShape.getPath().forEach(p => bounds.extend(p));
+          valgtPosisjon = currentShape.getPath().getArray().map(p => p.toJSON());
           center = bounds.getCenter();
-          event.overlay.getPath().addListener("set_at", () => {
+
+          currentShape.getPath().addListener("set_at", () => {
             const newBounds = new google.maps.LatLngBounds();
-            event.overlay.getPath().forEach(p => newBounds.extend(p));
+            currentShape.getPath().forEach(p => newBounds.extend(p));
             currentMarker.setPosition(newBounds.getCenter());
           });
-          event.overlay.getPath().addListener("insert_at", () => {
+          currentShape.getPath().addListener("insert_at", () => {
             const newBounds = new google.maps.LatLngBounds();
-            event.overlay.getPath().forEach(p => newBounds.extend(p));
+            currentShape.getPath().forEach(p => newBounds.extend(p));
             currentMarker.setPosition(newBounds.getCenter());
           });
         }
+
         currentMarker = new google.maps.Marker({ position: center, map });
       });
     }
