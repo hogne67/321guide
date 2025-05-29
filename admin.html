@@ -141,16 +141,16 @@
         const id = docRef.id;
         const imageUrls = [];
 
-        if (bilder.length) {
-          for (let i = 0; i < bilder.length; i++) {
-            const snapshot = await storage.ref().child(`bilder/${id}_${i}`).put(bilder[i]);
-            const url = await snapshot.ref.getDownloadURL();
-            imageUrls.push(url);
-          }
+        for (let i = 0; i < bilder.length; i++) {
+          statusDisplay.textContent = `Laster opp bilde ${i + 1} av ${bilder.length}...`;
+          const snapshot = await storage.ref().child(`bilder/${id}_${i}`).put(bilder[i]);
+          const url = await snapshot.ref.getDownloadURL();
+          imageUrls.push(url);
         }
 
         let lydUrl = "";
         if (lydfil) {
+          statusDisplay.textContent = "Laster opp lydfil...";
           const snapshot = await storage.ref().child(`lydfiler/${id}`).put(lydfil);
           lydUrl = await snapshot.ref.getDownloadURL();
         }
