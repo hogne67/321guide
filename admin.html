@@ -33,6 +33,11 @@
       width: 300px;
       padding: 8px;
     }
+    #status {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #444;
+    }
   </style>
 </head>
 <body>
@@ -56,6 +61,7 @@
       <div class="inline-preview"><audio id="audioPlayer" controls></audio></div>
 
       <button onclick="lagrePOI()">Lagre POI</button>
+      <div id="status"></div>
     </div>
     <div class="form-right">
       <input id="search-input" type="text" placeholder="Søk etter sted...">
@@ -80,6 +86,7 @@
     const lydfilInput = document.getElementById("lydfil");
     const bildePreviewContainer = document.getElementById("imagePreviewContainer");
     const audioPlayer = document.getElementById("audioPlayer");
+    const statusDisplay = document.getElementById("status");
     let bilder = [];
 
     bildeInput.addEventListener("change", () => {
@@ -121,6 +128,7 @@
       }
 
       lagreKnapp.disabled = true;
+      statusDisplay.textContent = "Lagrer POI og laster opp filer...";
 
       try {
         const docRef = await db.collection("pois").add({
@@ -148,6 +156,7 @@
         }
 
         await db.collection("pois").doc(id).update({ bilder: imageUrls, lydfil: lydUrl });
+        statusDisplay.textContent = "POI lagret!";
         alert("POI lagret!");
 
         // Tilbakestill skjema og tilstand
@@ -167,6 +176,8 @@
         currentMarker = null;
         valgtPosisjon = null;
       } catch (err) {
+        console.error("Feil ved lagring:", err);
+        statusDisplay.textContent = "Feil ved lagring: " + err.message;
         alert("Feil ved lagring: " + err.message);
       } finally {
         lagreKnapp.disabled = false;
