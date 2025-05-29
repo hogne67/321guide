@@ -83,10 +83,7 @@
     let bilder = [];
 
     bildeInput.addEventListener("change", () => {
-      const nyeBilder = Array.from(bildeInput.files);
-      const tillatte = 5 - bilder.length;
-      const faktiskNye = nyeBilder.slice(0, tillatte);
-      faktiskNye.forEach(file => bilder.push(file));
+      bilder = Array.from(bildeInput.files);
       bildePreviewContainer.innerHTML = "";
       bilder.forEach(file => {
         const reader = new FileReader();
@@ -136,10 +133,12 @@
         const id = docRef.id;
         const imageUrls = [];
 
-        for (let i = 0; i < bilder.length; i++) {
-          const snapshot = await storage.ref().child(`bilder/${id}_${i}`).put(bilder[i]);
-          const url = await snapshot.ref.getDownloadURL();
-          imageUrls.push(url);
+        if (bilder.length) {
+          for (let i = 0; i < bilder.length; i++) {
+            const snapshot = await storage.ref().child(`bilder/${id}_${i}`).put(bilder[i]);
+            const url = await snapshot.ref.getDownloadURL();
+            imageUrls.push(url);
+          }
         }
 
         let lydUrl = "";
