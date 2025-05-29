@@ -122,7 +122,7 @@
         return;
       }
 
-      db.collection("poi").add({
+      db.collection("pois").add({
         tittel,
         beskrivelse,
         posisjon: valgtPosisjon,
@@ -143,7 +143,7 @@
           lydUrl = await snapshot.ref.getDownloadURL();
         }
 
-        await db.collection("poi").doc(id).update({ bilder: imageUrls, lydfil: lydUrl });
+        await db.collection("pois").doc(id).update({ bilder: imageUrls, lydfil: lydUrl });
         alert("POI lagret!");
         location.reload();
       }).catch(err => alert("Feil ved lagring: " + err.message));
