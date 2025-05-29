@@ -65,7 +65,7 @@
 
   <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyCCx62HTelY5ejutv_loSxYRSUqaGZ-6Vw",
+      apiKey: "AIzaSyCPqEgpfkeKgc91eAbuO9LHjIAnhT7VR28",
       authDomain: "pois-75b5f.firebaseapp.com",
       projectId: "pois-75b5f",
       storageBucket: "pois-75b5f.appspot.com",
@@ -76,53 +76,96 @@
     const db = firebase.firestore();
     const storage = firebase.storage();
 
-    async function lagrePOI() {
+    const bildeInput = document.getElementById("bilde");
+    const lydfilInput = document.getElementById("lydfil");
+    const bildePreviewContainer = document.getElementById("imagePreviewContainer");
+    const audioPlayer = document.getElementById("audioPlayer");
+    let bilder = [];
+
+    bildeInput.addEventListener("change", () => {
+      const nyeBilder = Array.from(bildeInput.files);
+      const tillatte = 5 - bilder.length;
+      const faktiskNye = nyeBilder.slice(0, tillatte);
+      faktiskNye.forEach(file => bilder.push(file));
+      bildePreviewContainer.innerHTML = "";
+      bilder.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = document.createElement("img");
+          img.src = e.target.result;
+          bildePreviewContainer.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    lydfilInput.addEventListener("change", () => {
+      const file = lydfilInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => audioPlayer.src = e.target.result;
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function lagrePOI() {
       const tittel = document.getElementById("tittel").value.trim();
       const beskrivelse = document.getElementById("beskrivelse").value.trim();
-      const lydfil = document.getElementById("lydfil").files[0];
-      const bilder = document.getElementById("bilde").files;
+      const lydfil = lydfilInput.files[0];
 
       if (!tittel || !beskrivelse) {
-        alert("Tittel og beskrivelse må fylles ut");
+        alert("Tittel og beskrivelse må fylles ut.");
         return;
       }
 
-      const poiRef = await db.collection("POI").add({
-        tittel,
-        beskrivelse,
-        opprettet: new Date()
+      db.collection("poi").add({ tittel, beskrivelse, tidspunkt: firebase.firestore.FieldValue.serverTimestamp() })
+        .then(async docRef => {
+          const id = docRef.id;
+          const imageUrls = [];
+
+          for (let i = 0; i < bilder.length; i++) {
+            const snapshot = await storage.ref().child(`bilder/${id}_${i}`).put(bilder[i]);
+            const url = await snapshot.ref.getDownloadURL();
+            imageUrls.push(url);
+          }
+
+          let lydUrl = "";
+          if (lydfil) {
+            const snapshot = await storage.ref().child(`lydfiler/${id}`).put(lydfil);
+            lydUrl = await snapshot.ref.getDownloadURL();
+          }
+
+          await db.collection("poi").doc(id).update({ bilder: imageUrls, lydfil: lydUrl });
+          alert("POI lagret!");
+          location.reload();
+        })
+        .catch(err => alert("Feil ved lagring: " + err.message));
+    }
+
+    function initMap() {
+      const map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 60.3913, lng: 5.3221 },
+        zoom: 13,
       });
 
-      const uploads = [];
+      const input = document.getElementById("search-input");
+      const searchBox = new google.maps.places.SearchBox(input);
+      map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
 
-      if (lydfil) {
-        const lydRef = storage.ref().child(`lydfiler/${poiRef.id}/${lydfil.name}`);
-        uploads.push(
-          lydRef.put(lydfil).then(() => lydRef.getDownloadURL())
-            .then(url => poiRef.update({ lydfil: url }))
-        );
-      }
+      map.addListener("bounds_changed", () => {
+        searchBox.setBounds(map.getBounds());
+      });
 
-      if (bilder.length > 0) {
-        const bildeUrls = [];
-        for (let i = 0; i < bilder.length; i++) {
-          const bildeRef = storage.ref().child(`bilder/${poiRef.id}/${bilder[i].name}`);
-          uploads.push(
-            bildeRef.put(bilder[i]).then(() => bildeRef.getDownloadURL())
-              .then(url => bildeUrls.push(url))
-          );
-        }
-        await Promise.all(uploads);
-        await poiRef.update({ bilder: bildeUrls });
-      } else {
-        await Promise.all(uploads);
-      }
-
-      alert("POI lagret!");
-      location.reload();
+      searchBox.addListener("places_changed", () => {
+        const places = searchBox.getPlaces();
+        if (places.length === 0) return;
+        const place = places[0];
+        if (!place.geometry || !place.geometry.location) return;
+        map.panTo(place.geometry.location);
+        map.setZoom(15);
+      });
     }
   </script>
-
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCPqEgpfkeKgc91eAbuO9LHjIAnhT7VR28&callback=initMap&libraries=places,drawing"></script>
 </body>
 </html>
