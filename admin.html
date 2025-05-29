@@ -220,20 +220,45 @@
       statusDisplay.textContent = "Lagrer...";
 
       try {
-        const bildeUrls = await Promise.all(bilder.map(async (file) => {
+        const bildeUrls = await Promise.all(bilder.map(async (file, i) => {
           const ref = storage.ref().child(`bilder/${Date.now()}_${file.name}`);
-          await ref.put(file);
-          return await ref.getDownloadURL();
+          const metadata = { contentType: file.type };
+
+          return new Promise((resolve, reject) => {
+            const uploadTask = ref.put(file, metadata);
+            uploadTask.on("state_changed",
+              snapshot => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                statusDisplay.textContent = `Laster opp bilde ${i + 1} (${Math.round(progress)}%)...`;
+              },
+              reject,
+              async () => resolve(await ref.getDownloadURL())
+            );
+          });
         }));
 
         let lydfilUrl = "";
         if (lydfil) {
           const ref = storage.ref().child(`lyd/${Date.now()}_${lydfil.name}`);
-          await ref.put(lydfil);
-          lydfilUrl = await ref.getDownloadURL();
+          const metadata = { contentType: lydfil.type };
+
+          await new Promise((resolve, reject) => {
+            const uploadTask = ref.put(lydfil, metadata);
+            uploadTask.on("state_changed",
+              snapshot => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                statusDisplay.textContent = `Laster opp lyd (${Math.round(progress)}%)...`;
+              },
+              reject,
+              async () => {
+                lydfilUrl = await ref.getDownloadURL();
+                resolve();
+              }
+            );
+          });
         }
 
-        await db.collection("poi").add({
+        await db.collection("pois").add({
           tittel,
           beskrivelse,
           posisjon: valgtPosisjon,
@@ -248,6 +273,7 @@
         lydfilInput.value = "";
         bildePreviewContainer.innerHTML = "";
         audioPlayer.src = "";
+        bilder = [];
         statusDisplay.textContent = "POI lagret!";
       } catch (error) {
         console.error("Feil ved lagring:", error);
