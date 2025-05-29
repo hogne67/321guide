@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Test opplasting til Firebase</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    label, input, button { display: block; margin-top: 1rem; }
+    .preview img { width: 100px; margin-right: 10px; }
+    #status { margin-top: 1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>🚀 Test opplasting</h1>
+
+  <label for="bilder">Velg inntil 5 bilder:</label>
+  <input type="file" id="bilder" accept="image/*" multiple />
+  <div class="preview" id="bildePreview"></div>
+
+  <label for="lydfil">Velg lydfil:</label>
+  <input type="file" id="lydfil" accept="audio/*" />
+  <audio id="audioPlayer" controls></audio>
+
+  <button onclick="lastOppFiler()">Last opp</button>
+  <div id="status"></div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCPqEgpfkeKgc91eAbuO9LHjIAnhT7VR28",
+      authDomain: "pois-75b5f.firebaseapp.com",
+      projectId: "pois-75b5f",
+      storageBucket: "pois-75b5f.appspot.com",
+      messagingSenderId: "255931335310",
+      appId: "1:255931335310:web:491d5eb8d484574962ffdf"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
+
+    const bildeInput = document.getElementById("bilder");
+    const lydfilInput = document.getElementById("lydfil");
+    const bildePreview = document.getElementById("bildePreview");
+    const audioPlayer = document.getElementById("audioPlayer");
+    const statusDisplay = document.getElementById("status");
+
+    bildeInput.addEventListener("change", () => {
+      bildePreview.innerHTML = "";
+      Array.from(bildeInput.files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = document.createElement("img");
+          img.src = e.target.result;
+          bildePreview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    lydfilInput.addEventListener("change", () => {
+      const file = lydfilInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => audioPlayer.src = e.target.result;
+        reader.readAsDataURL(file);
+      }
+    });
+
+    async function lastOppFiler() {
+      statusDisplay.textContent = "Starter opplasting...";
+      const bilder = Array.from(bildeInput.files).slice(0, 5);
+      const lydfil = lydfilInput.files[0];
+
+      try {
+        for (let i = 0; i < bilder.length; i++) {
+          const file = bilder[i];
+          const ref = storage.ref().child(`test-bilder/${Date.now()}_${file.name}`);
+          const uploadTask = ref.put(file);
+          await new Promise((resolve, reject) => {
+            uploadTask.on("state_changed",
+              snap => {
+                const progress = (snap.bytesTransferred / snap.totalBytes) * 100;
+                statusDisplay.textContent = `Laster opp bilde ${i + 1} (${Math.round(progress)}%)...`;
+              },
+              reject,
+              async () => {
+                const url = await ref.getDownloadURL();
+                console.log(`Bilde ${i + 1}:`, url);
+                resolve();
+              }
+            );
+          });
+        }
+
+        if (lydfil) {
+          const ref = storage.ref().child(`test-lyd/${Date.now()}_${lydfil.name}`);
+          const uploadTask = ref.put(lydfil);
+          await new Promise((resolve, reject) => {
+            uploadTask.on("state_changed",
+              snap => {
+                const progress = (snap.bytesTransferred / snap.totalBytes) * 100;
+                statusDisplay.textContent = `Laster opp lyd (${Math.round(progress)}%)...`;
+              },
+              reject,
+              async () => {
+                const url = await ref.getDownloadURL();
+                console.log("Lydfil:", url);
+                resolve();
+              }
+            );
+          });
+        }
+
+        statusDisplay.textContent = "Alle filer lastet opp!";
+      } catch (err) {
+        console.error("Feil:", err);
+        statusDisplay.textContent = "Feil: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
