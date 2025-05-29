@@ -116,11 +116,14 @@
       const tittel = document.getElementById("tittel").value.trim();
       const beskrivelse = document.getElementById("beskrivelse").value.trim();
       const lydfil = lydfilInput.files[0];
+      const lagreKnapp = document.querySelector("button[onclick='lagrePOI()']");
 
       if (!tittel || !beskrivelse || !valgtPosisjon) {
         alert("Tittel, beskrivelse og posisjon må fylles ut.");
         return;
       }
+
+      lagreKnapp.disabled = true;
 
       try {
         const docRef = await db.collection("pois").add({
@@ -148,7 +151,6 @@
         await db.collection("pois").doc(id).update({ bilder: imageUrls, lydfil: lydUrl });
         alert("POI lagret!");
 
-        // Tøm skjemaet og tilbakestill
         document.getElementById("tittel").value = "";
         document.getElementById("beskrivelse").value = "";
         bildeInput.value = "";
@@ -164,6 +166,8 @@
         valgtPosisjon = null;
       } catch (err) {
         alert("Feil ved lagring: " + err.message);
+      } finally {
+        lagreKnapp.disabled = false;
       }
     }
   </script>
@@ -171,4 +175,3 @@
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCPqEgpfkeKgc91eAbuO9LHjIAnhT7VR28&callback=initMap&libraries=places,drawing"></script>
 </body>
 </html>
-
