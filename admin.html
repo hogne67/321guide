@@ -208,8 +208,53 @@
         }
       });
     }
-  </script>
 
+    async function lagrePOI() {
+      const tittel = document.getElementById("tittel").value.trim();
+      const beskrivelse = document.getElementById("beskrivelse").value.trim();
+      const lydfil = lydfilInput.files[0];
+      if (!tittel || !beskrivelse || !valgtPosisjon) {
+        alert("Vennligst fyll ut tittel, beskrivelse og velg en posisjon i kartet.");
+        return;
+      }
+      statusDisplay.textContent = "Lagrer...";
+
+      try {
+        const bildeUrls = await Promise.all(bilder.map(async (file) => {
+          const ref = storage.ref().child(`bilder/${Date.now()}_${file.name}`);
+          await ref.put(file);
+          return await ref.getDownloadURL();
+        }));
+
+        let lydfilUrl = "";
+        if (lydfil) {
+          const ref = storage.ref().child(`lyd/${Date.now()}_${lydfil.name}`);
+          await ref.put(lydfil);
+          lydfilUrl = await ref.getDownloadURL();
+        }
+
+        await db.collection("poi").add({
+          tittel,
+          beskrivelse,
+          posisjon: valgtPosisjon,
+          bilder: bildeUrls,
+          lydfil: lydfilUrl,
+          opprettet: new Date()
+        });
+
+        document.getElementById("tittel").value = "";
+        document.getElementById("beskrivelse").value = "";
+        bildeInput.value = "";
+        lydfilInput.value = "";
+        bildePreviewContainer.innerHTML = "";
+        audioPlayer.src = "";
+        statusDisplay.textContent = "POI lagret!";
+      } catch (error) {
+        console.error("Feil ved lagring:", error);
+        statusDisplay.textContent = "Feil ved lagring: " + error.message;
+      }
+    }
+  </script>
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCPqEgpfkeKgc91eAbuO9LHjIAnhT7VR28&callback=initMap&libraries=places,drawing"></script>
 </body>
 </html>
