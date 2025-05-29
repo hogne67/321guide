@@ -46,7 +46,6 @@
       <label for="beskrivelse">Beskrivelse</label>
       <textarea id="beskrivelse"></textarea>
       <div id="beskrivelseCounter" class="counter">0 ord, 0 tegn</div>
-      <button id="genererBeskrivelseBtn">✨ Generer beskrivelse med ChatGPT</button>
 
       <label for="bilde">Last opp inntil 5 bilder</label>
       <input id="bilde" type="file" accept="image/*" multiple>
@@ -76,135 +75,51 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const storage = firebase.storage();
-    const auth = firebase.auth();
 
-    let valgtPosisjon = null;
-    let currentMarker = null;
-    let drawingManager;
-    let drawnShape = null;
-    let ruteId = new URLSearchParams(window.location.search).get("rute");
+    async function lagrePOI() {
+      const tittel = document.getElementById("tittel").value.trim();
+      const beskrivelse = document.getElementById("beskrivelse").value.trim();
+      const lydfil = document.getElementById("lydfil").files[0];
+      const bilder = document.getElementById("bilde").files;
 
-    // ChatGPT-knapp
-    document.getElementById("genererBeskrivelseBtn").addEventListener("click", async () => {
-      const tittel = document.getElementById("tittel").value;
-      if (!tittel.trim()) {
-        alert("Skriv inn en tittel først!");
+      if (!tittel || !beskrivelse) {
+        alert("Tittel og beskrivelse må fylles ut");
         return;
       }
-      const prompt = `Lag en kort og engasjerende beskrivelse for et punkt med tittelen: "${tittel}"`;
-      try {
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "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"
-          },
-          body: JSON.stringify({
-            model: "gpt-3.5-turbo",
-            messages: [{ role: "user", content: prompt }],
-            max_tokens: 150
-          })
-        });
-        const data = await response.json();
-        document.getElementById("beskrivelse").value = data.choices[0].message.content.trim();
-      } catch (err) {
-        alert("Kunne ikke hente beskrivelse: " + err.message);
+
+      const poiRef = await db.collection("POI").add({
+        tittel,
+        beskrivelse,
+        opprettet: new Date()
+      });
+
+      const uploads = [];
+
+      if (lydfil) {
+        const lydRef = storage.ref().child(`lydfiler/${poiRef.id}/${lydfil.name}`);
+        uploads.push(
+          lydRef.put(lydfil).then(() => lydRef.getDownloadURL())
+            .then(url => poiRef.update({ lydfil: url }))
+        );
       }
-    });
 
-    function updateMarkerPosition(pos) {
-      if (!currentMarker) {
-        currentMarker = new google.maps.Marker({ map });
+      if (bilder.length > 0) {
+        const bildeUrls = [];
+        for (let i = 0; i < bilder.length; i++) {
+          const bildeRef = storage.ref().child(`bilder/${poiRef.id}/${bilder[i].name}`);
+          uploads.push(
+            bildeRef.put(bilder[i]).then(() => bildeRef.getDownloadURL())
+              .then(url => bildeUrls.push(url))
+          );
+        }
+        await Promise.all(uploads);
+        await poiRef.update({ bilder: bildeUrls });
+      } else {
+        await Promise.all(uploads);
       }
-      currentMarker.setPosition(pos);
-    }
 
-    let map;
-    function initMap() {
-      map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 60.3913, lng: 5.3221 },
-        zoom: 13,
-      });
-
-      const input = document.getElementById("search-input");
-      const searchBox = new google.maps.places.SearchBox(input);
-      map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
-
-      map.addListener("bounds_changed", () => {
-        searchBox.setBounds(map.getBounds());
-      });
-
-      searchBox.addListener("places_changed", () => {
-        const places = searchBox.getPlaces();
-        if (places.length === 0) return;
-        const place = places[0];
-        if (!place.geometry || !place.geometry.location) return;
-        map.panTo(place.geometry.location);
-        map.setZoom(15);
-      });
-
-      drawingManager = new google.maps.drawing.DrawingManager({
-        drawingMode: google.maps.drawing.OverlayType.CIRCLE,
-        drawingControl: true,
-        drawingControlOptions: {
-          position: google.maps.ControlPosition.TOP_RIGHT,
-          drawingModes: [
-            google.maps.drawing.OverlayType.CIRCLE,
-            google.maps.drawing.OverlayType.POLYGON,
-          ],
-        },
-        circleOptions: {
-          fillColor: "#00ff00",
-          fillOpacity: 0.2,
-          strokeWeight: 2,
-          editable: true,
-          draggable: true,
-          zIndex: 1,
-        },
-        polygonOptions: {
-          fillColor: "#00ff00",
-          fillOpacity: 0.2,
-          strokeWeight: 2,
-          editable: true,
-          draggable: true,
-          zIndex: 1,
-        },
-      });
-
-      drawingManager.setMap(map);
-
-      google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
-        if (drawnShape) drawnShape.setMap(null);
-        drawnShape = event.overlay;
-
-        if (event.type === google.maps.drawing.OverlayType.CIRCLE) {
-          valgtPosisjon = drawnShape.getCenter().toJSON();
-          updateMarkerPosition(drawnShape.getCenter());
-
-          drawnShape.addListener("center_changed", () => {
-            updateMarkerPosition(drawnShape.getCenter());
-          });
-          drawnShape.addListener("radius_changed", () => {
-            updateMarkerPosition(drawnShape.getCenter());
-          });
-          drawnShape.addListener("dragend", () => {
-            updateMarkerPosition(drawnShape.getCenter());
-          });
-        }
-
-        if (event.type === google.maps.drawing.OverlayType.POLYGON) {
-          const updatePolygonMarker = () => {
-            const bounds = new google.maps.LatLngBounds();
-            drawnShape.getPath().forEach(p => bounds.extend(p));
-            valgtPosisjon = drawnShape.getPath().getArray().map(p => p.toJSON());
-            updateMarkerPosition(bounds.getCenter());
-          };
-
-          updatePolygonMarker();
-          google.maps.event.addListener(drawnShape.getPath(), 'set_at', updatePolygonMarker);
-          google.maps.event.addListener(drawnShape.getPath(), 'insert_at', updatePolygonMarker);
-        }
-      });
+      alert("POI lagret!");
+      location.reload();
     }
   </script>
 
