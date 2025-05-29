@@ -151,8 +151,11 @@
         await db.collection("pois").doc(id).update({ bilder: imageUrls, lydfil: lydUrl });
         alert("POI lagret!");
 
+        // Tilbakestill skjema og tilstand
         document.getElementById("tittel").value = "";
+        document.getElementById("tittelCounter").textContent = "0 / 40 tegn";
         document.getElementById("beskrivelse").value = "";
+        document.getElementById("beskrivelseCounter").textContent = "0 ord, 0 tegn";
         bildeInput.value = "";
         lydfilInput.value = "";
         audioPlayer.src = "";
