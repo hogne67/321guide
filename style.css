@@ -1,11 +1,29 @@
 body {
   font-family: sans-serif;
   padding: 20px;
+  background-color: #f7f7f7;
+}
+
+h1 {
+  color: #333;
 }
 
 .route-card {
-  border: 1px solid #ccc;
+  background-color: #fff;
+  border: 1px solid #ddd;
   padding: 15px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   border-radius: 8px;
+  box-shadow: 1px 1px 4px rgba(0,0,0,0.1);
+}
+
+.route-card h2 {
+  margin-top: 0;
+}
+
+.route-card a {
+  display: inline-block;
+  margin-top: 10px;
+  color: #0066cc;
+  text-decoration: none;
 }
