@@ -70,6 +70,31 @@
       }
     }
 
+    function visBrukerPosisjon() {
+      if (!navigator.geolocation) {
+        alert("GPS ikke støttet");
+        return;
+      }
+
+      let userMarker;
+
+      navigator.geolocation.watchPosition(pos => {
+        const { latitude, longitude } = pos.coords;
+
+        if (!userMarker) {
+          userMarker = L.marker([latitude, longitude], {
+            title: "Din posisjon"
+          }).addTo(map).bindPopup("Du er her").openPopup();
+        } else {
+          userMarker.setLatLng([latitude, longitude]);
+        }
+      }, err => {
+        console.error("Feil med GPS:", err);
+      }, {
+        enableHighAccuracy: true
+      });
+    }
+
     function startGpsTracking() {
       navigator.geolocation.watchPosition((pos) => {
         const userLat = pos.coords.latitude;
@@ -92,6 +117,7 @@
     }
 
     loadRoute().then(() => {
+      visBrukerPosisjon();
       if (navigator.geolocation) {
         startGpsTracking();
       } else {
