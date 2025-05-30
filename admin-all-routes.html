@@ -1,2 +1,98 @@
 <!-- Tidligere routes.html -->
 <!-- Her kommer rutelisten -->
+
+
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Alle ruter – Admin</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { font-family: sans-serif; margin: 0; display: flex; }
+    .sidebar { width: 200px; background: #222; color: white; height: 100vh; padding: 1rem; }
+    .main { flex-grow: 1; padding: 2rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.5rem; border-bottom: 1px solid #ccc; }
+    .active-switch { cursor: pointer; }
+    .new-route-btn { background: #0066cc; color: white; padding: 0.5rem 1rem; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
+    .qr { width: 60px; height: 60px; }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h3>Admin</h3>
+    <ul>
+      <li><a href="admin-all-routes.html" style="color:white;">🗺 Ruter</a></li>
+      <li><a href="admin-media.html" style="color:white;">🖼 Media</a></li>
+      <li><a href="admin-users.html" style="color:white;">👤 Brukere</a></li>
+    </ul>
+  </div>
+  <div class="main">
+    <h1>Alle ruter</h1>
+    <input type="text" id="searchInput" placeholder="Søk etter rute..." style="margin-bottom:1rem; padding:0.5rem; width:300px;">
+    <button class="new-route-btn" onclick="location.href='admin-route.html?new=true'">➕ Opprett ny rute</button>
+    <table>
+      <thead>
+        <tr>
+          <th>Tittel</th>
+          <th>Status</th>
+          <th>Antall POI</th>
+          <th>Språk</th>
+          <th>QR</th>
+          <th>Handling</th>
+        </tr>
+      </thead>
+      <tbody id="routeTableBody"></tbody>
+    </table>
+  </div>
+
+  <script type="module">
+    import { db } from './firebase-init.js';
+    import { collection, getDocs, doc, getCountFromServer } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+    const tableBody = document.getElementById("routeTableBody");
+    const searchInput = document.getElementById("searchInput");
+
+    async function visRuter() {
+      const routesSnapshot = await getDocs(collection(db, "routes"));
+      const rows = [];
+
+      for (const routeDoc of routesSnapshot.docs) {
+        const route = routeDoc.data();
+        const id = routeDoc.id;
+
+        const poiCountSnap = await getCountFromServer(collection(db, `routes/${id}/pois`));
+        const poiCount = poiCountSnap.data().count;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${route.name || '(Uten navn)'}</td>
+          <td><input type="checkbox" class="active-switch" ${route.active ? 'checked' : ''}></td>
+          <td>${poiCount}</td>
+          <td>${(route.languages || []).join(', ')}</td>
+          <td><img class="qr" src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=https://mittdomene.com/route.html?routeId=${id}"></td>
+          <td>
+            <button onclick="location.href='admin-route.html?id=${id}'">✏️</button>
+            <button onclick="alert('Slette rute kommer senere')">🗑️</button>
+          </td>
+        `;
+        rows.push(tr);
+      }
+
+      rows.forEach(row => tableBody.appendChild(row));
+    }
+
+    searchInput.addEventListener("input", () => {
+      const filter = searchInput.value.toLowerCase();
+      const rows = tableBody.querySelectorAll("tr");
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(filter) ? "" : "none";
+      });
+    });
+
+    visRuter();
+  </script>
+</body>
+</html>
