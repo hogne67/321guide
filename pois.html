@@ -1,82 +1,96 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="no">
 <head>
   <meta charset="UTF-8">
-  <title>Administrer POI</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCAPpamFocyVPlGnTl-mDBLxDDdNmLK4Xk",
-      authDomain: "pois-75b5f.firebaseapp.com",
-      projectId: "pois-75b5f",
-      storageBucket: "pois-75b5f.firebasestorage.app",
-      messagingSenderId: "255931335310",
-      appId: "1:255931335310:web:491d5eb8d484574962ffdf"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const storage = firebase.storage();
-  </script>
+  <title>Legg til POI</title>
 </head>
 <body>
-  <h1>Legg til POI</h1>
+  <h1>Legg til punkt (POI)</h1>
 
-  <label for="routeSelector">Velg rute:</label>
-  <select id="routeSelector"></select>
+  <label for="routeSelect">Velg rute:</label>
+  <select id="routeSelect"></select><br><br>
 
-  <input type="text" id="poiTitle" placeholder="Tittel">
-  <textarea id="poiText" placeholder="Beskrivelse"></textarea>
-  <input type="number" id="latitude" placeholder="Latitude">
-  <input type="number" id="longitude" placeholder="Longitude">
-  <input type="file" id="imageInput">
-  <input type="file" id="audioInput">
-  <button onclick="addPOI()">Legg til POI</button>
+  <label for="poiTitle">Tittel:</label>
+  <input type="text" id="poiTitle"><br>
 
-  <script>
+  <label for="poiText">Beskrivelse:</label><br>
+  <textarea id="poiText"></textarea><br>
+
+  <label for="latitude">Latitude:</label>
+  <input type="text" id="latitude"><br>
+
+  <label for="longitude">Longitude:</label>
+  <input type="text" id="longitude"><br>
+
+  <label for="imageFile">Bilde:</label>
+  <input type="file" id="imageFile"><br>
+
+  <label for="audioFile">Lyd:</label>
+  <input type="file" id="audioFile"><br>
+
+  <button id="savePoi">Lagre POI</button>
+
+  <script type="module">
+    import { db, storage } from './firebase-init.js';
+    import {
+      collection, getDocs, doc, addDoc
+    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+    import {
+      ref, uploadBytes, getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+
+    const routeSelect = document.getElementById('routeSelect');
+    const savePoiBtn = document.getElementById('savePoi');
+
     async function loadRoutes() {
-      const selector = document.getElementById('routeSelector');
-      selector.innerHTML = '';
-      const snapshot = await db.collection('routes').get();
-      snapshot.forEach(doc => {
-        const option = document.createElement('option');
-        option.value = doc.id;
-        option.textContent = doc.data().name;
-        selector.appendChild(option);
+      const snapshot = await getDocs(collection(db, "routes"));
+      snapshot.forEach(docSnap => {
+        const option = document.createElement("option");
+        option.value = docSnap.id;
+        option.textContent = docSnap.data().name;
+        routeSelect.appendChild(option);
       });
     }
 
-    async function addPOI() {
-      const routeId = document.getElementById('routeSelector').value;
+    async function uploadFile(file, pathPrefix) {
+      const fileRef = ref(storage, `${pathPrefix}/${file.name}`);
+      await uploadBytes(fileRef, file);
+      return await getDownloadURL(fileRef);
+    }
+
+    savePoiBtn.addEventListener("click", async () => {
+      const routeId = routeSelect.value;
       const title = document.getElementById('poiTitle').value;
       const text = document.getElementById('poiText').value;
       const lat = parseFloat(document.getElementById('latitude').value);
       const lng = parseFloat(document.getElementById('longitude').value);
+      const imageFile = document.getElementById('imageFile').files[0];
+      const audioFile = document.getElementById('audioFile').files[0];
 
-      const imageFile = document.getElementById('imageInput').files[0];
-      const audioFile = document.getElementById('audioInput').files[0];
+      if (!routeId || !title || isNaN(lat) || isNaN(lng)) {
+        alert("Fyll ut rute, tittel og koordinater.");
+        return;
+      }
 
-      const imageRef = storage.ref(`poi-images/${imageFile.name}`);
-      const audioRef = storage.ref(`poi-audio/${audioFile.name}`);
+      let imageUrl = "";
+      let audioUrl = "";
 
-      await imageRef.put(imageFile);
-      const imageUrl = await imageRef.getDownloadURL();
+      if (imageFile) imageUrl = await uploadFile(imageFile, `images/${routeId}`);
+      if (audioFile) audioUrl = await uploadFile(audioFile, `audio/${routeId}`);
 
-      await audioRef.put(audioFile);
-      const audioUrl = await audioRef.getDownloadURL();
-
-      await db.collection('routes').doc(routeId).collection('pois').add({
+      const poiCollection = collection(db, `routes/${routeId}/pois`);
+      await addDoc(poiCollection, {
         title,
         text,
         lat,
         lng,
         imageUrl,
-        audioUrl
+        audioUrl,
+        created: new Date()
       });
 
-      alert('POI lagt til');
-    }
+      alert("POI lagret!");
+    });
 
     loadRoutes();
   </script>
