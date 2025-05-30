@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <a href="javascript:history.back()" style="display: inline-block; margin: 10px 0;">← Tilbake</a>
   <h1 id="poiTitle">Punkt</h1>
   <img id="poiImage" src="" alt="Bilde" style="max-width: 100%; height: auto; display: none;">
   <audio id="poiAudio" controls autoplay style="margin-top: 10px; display: none;"></audio>
@@ -26,7 +27,7 @@
     const textEl = document.getElementById("poiText");
 
     async function loadPoi() {
-      const poiRef = doc(db, \`routes/\${routeId}/pois/\${poiId}\`);
+      const poiRef = doc(db, `routes/${routeId}/pois/${poiId}`);
       const poiSnap = await getDoc(poiRef);
       const poi = poiSnap.data();
 
