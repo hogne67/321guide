@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Administrer media</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCAPpamFocyVPlGnTl-mDBLxDDdNmLK4Xk",
+      authDomain: "pois-75b5f.firebaseapp.com",
+      projectId: "pois-75b5f",
+      storageBucket: "pois-75b5f.firebasestorage.app",
+      messagingSenderId: "255931335310",
+      appId: "1:255931335310:web:491d5eb8d484574962ffdf"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
+  </script>
+</head>
+<body>
+  <h1>Mediaoversikt</h1>
+
+  <h2>Last opp ny mediafil</h2>
+  <input type="file" id="mediaInput">
+  <button onclick="uploadMedia()">Last opp</button>
+
+  <h2>Lagrede filer</h2>
+  <ul id="mediaList"></ul>
+
+  <script>
+    async function uploadMedia() {
+      const file = document.getElementById('mediaInput').files[0];
+      if (!file) return alert('Velg en fil først');
+
+      const path = `misc-media/${file.name}`;
+      const ref = storage.ref(path);
+      await ref.put(file);
+      const url = await ref.getDownloadURL();
+
+      const li = document.createElement('li');
+      li.innerHTML = `<a href="${url}" target="_blank">${file.name}</a>`;
+      document.getElementById('mediaList').appendChild(li);
+    }
+  </script>
+</body>
+</html>
