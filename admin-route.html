@@ -1,0 +1,61 @@
+
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Rediger rute</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1 id="routeTitle">Rute</h1>
+  <p><strong>Beskrivelse:</strong> <span id="routeDescription"></span></p>
+
+  <h2>Punkter i ruten</h2>
+  <ul id="poiList"></ul>
+
+  <button id="addPoiBtn">➕ Legg til nytt punkt</button>
+
+  <script type="module">
+    import { db } from './firebase-init.js';
+    import {
+      doc, getDoc, collection, getDocs
+    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const routeId = urlParams.get("id");
+
+    const titleEl = document.getElementById("routeTitle");
+    const descEl = document.getElementById("routeDescription");
+    const poiList = document.getElementById("poiList");
+    const addPoiBtn = document.getElementById("addPoiBtn");
+
+    async function visRoute() {
+      const routeRef = doc(db, "routes", routeId);
+      const routeSnap = await getDoc(routeRef);
+      const routeData = routeSnap.data();
+
+      titleEl.textContent = routeData.name || "Ukjent navn";
+      descEl.textContent = routeData.description || "(Ingen beskrivelse)";
+    }
+
+    async function visPoiListe() {
+      const poisRef = collection(db, `routes/${routeId}/pois`);
+      const snapshot = await getDocs(poisRef);
+
+      snapshot.forEach(doc => {
+        const poi = doc.data();
+        const li = document.createElement("li");
+        li.innerHTML = `<strong>${poi.title || '(Uten tittel)'}</strong> – ${poi.description || ''}`;
+        poiList.appendChild(li);
+      });
+    }
+
+    addPoiBtn.addEventListener("click", () => {
+      window.location.href = `poi.html?routeId=${routeId}`;
+    });
+
+    visRoute();
+    visPoiListe();
+  </script>
+</body>
+</html>
