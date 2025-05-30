@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="no">
 <head>
@@ -25,43 +26,50 @@
     <div id="map" style="height: 400px; margin-top: 20px;"></div>
 
     <h2>Legg til nytt punkt</h2>
-
     <label for="poiTitle">Tittel:</label>
     <input type="text" id="poiTitle"><br>
-
     <label for="poiText">Beskrivelse:</label><br>
     <textarea id="poiText"></textarea><br>
-
     <label for="latitude">Latitude:</label>
     <input type="text" id="latitude"><br>
-
     <label for="longitude">Longitude:</label>
     <input type="text" id="longitude"><br>
-
     <label for="imageFile">Bilde:</label>
     <input type="file" id="imageFile"><br>
-
     <label for="audioFile">Lyd:</label>
     <input type="file" id="audioFile"><br>
-
     <button id="savePoi">Lagre punkt</button>
+
+    <h2>Rediger valgt punkt</h2>
+    <div id="editPoiSection" style="display:none;">
+      <input type="hidden" id="editPoiId">
+      <label for="editPoiTitle">Tittel:</label>
+      <input type="text" id="editPoiTitle"><br>
+      <label for="editPoiText">Beskrivelse:</label><br>
+      <textarea id="editPoiText"></textarea><br>
+      <label for="editLatitude">Latitude:</label>
+      <input type="text" id="editLatitude"><br>
+      <label for="editLongitude">Longitude:</label>
+      <input type="text" id="editLongitude"><br>
+      <label for="editImageFile">Nytt bilde (valgfritt):</label>
+      <input type="file" id="editImageFile"><br>
+      <label for="editAudioFile">Ny lydfil (valgfritt):</label>
+      <input type="file" id="editAudioFile"><br>
+      <button id="updatePoi">Oppdater punkt</button>
+    </div>
   </div>
 
-  <!-- Sidebar -->
   <script>
     fetch("sidebar.html")
       .then(res => res.text())
       .then(html => document.getElementById("sidebarContainer").innerHTML = html);
   </script>
-
-  <!-- Leaflet -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Firebase -->
   <script type="module">
     import { db, storage } from './firebase-init.js';
     import {
-      collection, getDocs, doc, getDoc, addDoc
+      collection, getDocs, doc, getDoc, addDoc, updateDoc
     } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
     import {
       ref, uploadBytes, getDownloadURL
@@ -70,6 +78,9 @@
     const routeSelect = document.getElementById("routeSelect");
     const routeDetails = document.getElementById("routeDetails");
     const poiList = document.getElementById("poiList");
+
+    let selectedRouteId = null;
+    let selectedPoiId = null;
 
     const map = L.map('map').setView([62.47, 6.15], 9);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -91,6 +102,7 @@
     routeSelect.addEventListener("change", async () => {
       const routeId = routeSelect.value;
       if (!routeId) return;
+      selectedRouteId = routeId;
 
       const routeRef = doc(db, "routes", routeId);
       const routeDoc = await getDoc(routeRef);
@@ -111,9 +123,12 @@
 
       poiSnap.forEach(poiDoc => {
         const poi = poiDoc.data();
-
         const li = document.createElement("li");
-        li.textContent = `${poi.title} (${poi.lat}, ${poi.lng})`;
+        li.innerHTML = `<strong>${poi.title}</strong> (${poi.lat}, ${poi.lng})`;
+        li.style.cursor = "pointer";
+        li.addEventListener("click", () => {
+          showEditForm(routeId, poiDoc.id, poi);
+        });
         poiList.appendChild(li);
 
         const marker = L.marker([poi.lat, poi.lng])
@@ -128,7 +143,6 @@
       }
     });
 
-    // Klikk i kartet setter lat/lng-felt
     map.on('click', function (e) {
       const lat = e.latlng.lat.toFixed(6);
       const lng = e.latlng.lng.toFixed(6);
@@ -174,7 +188,6 @@
       });
 
       alert("Punkt lagret!");
-
       document.getElementById('poiTitle').value = "";
       document.getElementById('poiText').value = "";
       document.getElementById('latitude').value = "";
@@ -182,6 +195,46 @@
       document.getElementById('imageFile').value = "";
       document.getElementById('audioFile').value = "";
 
+      routeSelect.dispatchEvent(new Event("change"));
+    });
+
+    function showEditForm(routeId, poiId, poi) {
+      selectedRouteId = routeId;
+      selectedPoiId = poiId;
+      document.getElementById('editPoiId').value = poiId;
+      document.getElementById('editPoiTitle').value = poi.title;
+      document.getElementById('editPoiText').value = poi.text;
+      document.getElementById('editLatitude').value = poi.lat;
+      document.getElementById('editLongitude').value = poi.lng;
+      document.getElementById('editPoiSection').style.display = "block";
+    }
+
+    document.getElementById("updatePoi").addEventListener("click", async () => {
+      const title = document.getElementById('editPoiTitle').value;
+      const text = document.getElementById('editPoiText').value;
+      const lat = parseFloat(document.getElementById('editLatitude').value);
+      const lng = parseFloat(document.getElementById('editLongitude').value);
+      const imageFile = document.getElementById('editImageFile').files[0];
+      const audioFile = document.getElementById('editAudioFile').files[0];
+
+      let updateData = { title, text, lat, lng };
+
+      if (imageFile) {
+        const imageUrl = await uploadFile(imageFile, `images/${selectedRouteId}`);
+        updateData.imageUrl = imageUrl;
+      }
+      if (audioFile) {
+        const audioUrl = await uploadFile(audioFile, `audio/${selectedRouteId}`);
+        updateData.audioUrl = audioUrl;
+      }
+
+      const poiDocRef = doc(db, `routes/${selectedRouteId}/pois/${selectedPoiId}`);
+      await updateDoc(poiDocRef, updateData);
+
+      alert("Punkt oppdatert!");
+      document.getElementById('editPoiSection').style.display = "none";
+      document.getElementById('editPoiId').value = "";
+      selectedPoiId = null;
       routeSelect.dispatchEvent(new Event("change"));
     });
 
