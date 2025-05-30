@@ -12,7 +12,70 @@
       projectId: "pois-75b5f",
       storageBucket: "pois-75b5f.firebasestorage.app",
       messagingSenderId: "255931335310",
-      appId: "1:255931335310:web:491d5eb8d484574962ffdf"
+      appId: "1:255931335310:web:491d5eb8d4845<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Ruteadministrasjon</title>
+</head>
+<body>
+  <h1>Opprett ny rute</h1>
+  <label for="routeName">Navn:</label>
+  <input type="text" id="routeName"><br>
+  <label for="routeDescription">Beskrivelse:</label>
+  <textarea id="routeDescription"></textarea><br>
+  <label for="routeLanguage">Språk (f.eks. no/en):</label>
+  <input type="text" id="routeLanguage"><br>
+  <button id="saveRoute">Lagre rute</button>
+
+  <h2>Eksisterende ruter</h2>
+  <ul id="routeList"></ul>
+
+  <script type="module">
+    import { db } from './firebase-init.js';
+    import { collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+    const routeCollection = collection(db, "routes");
+    const saveBtn = document.getElementById('saveRoute');
+    const routeList = document.getElementById('routeList');
+
+    saveBtn.addEventListener("click", async () => {
+      const name = document.getElementById('routeName').value;
+      const desc = document.getElementById('routeDescription').value;
+      const lang = document.getElementById('routeLanguage').value;
+
+      if (!name || !lang) {
+        alert("Navn og språk er påkrevd.");
+        return;
+      }
+
+      await addDoc(routeCollection, {
+        name,
+        description: desc,
+        language: lang,
+        created: new Date()
+      });
+
+      alert("Rute lagret!");
+      loadRoutes(); // oppdater liste
+    });
+
+    async function loadRoutes() {
+      routeList.innerHTML = "";
+      const snapshot = await getDocs(routeCollection);
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const li = document.createElement('li');
+        li.textContent = `${data.name} (${data.language})`;
+        routeList.appendChild(li);
+      });
+    }
+
+    loadRoutes();
+  </script>
+</body>
+</html>
+74962ffdf"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
