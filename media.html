@@ -3,16 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <title>Mediaoversikt</title>
+  <link rel="stylesheet" href="admin-layout.css">
 </head>
 <body>
-  <h1>Mediaoversikt</h1>
+  <div id="sidebarContainer"></div>
+  <div class="main">
+    <h1>Mediaoversikt</h1>
 
-  <h2>Last opp ny mediafil</h2>
-  <input type="file" id="mediaInput">
-  <button onclick="uploadMedia()">Last opp</button>
+    <h2>Last opp ny mediafil</h2>
+    <input type="file" id="mediaInput">
+    <button onclick="uploadMedia()">Last opp</button>
 
-  <h2>Lagrede filer</h2>
-  <ul id="mediaList"></ul>
+    <h2>Lagrede filer</h2>
+    <ul id="mediaList"></ul>
+  </div>
+
+  <script>
+    fetch("sidebar.html")
+      .then(res => res.text())
+      .then(html => document.getElementById("sidebarContainer").innerHTML = html);
+  </script>
 
   <script type="module">
     import { storage } from './firebase-init.js';
