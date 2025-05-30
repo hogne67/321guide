@@ -1,10 +1,19 @@
 <!DOCTYPE html>
 <html lang="no">
 <head>
+<!-- Leaflet CSS -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
   <meta charset="UTF-8">
   <title>Punkt</title>
   <link rel="stylesheet" href="admin-layout.css">
 </head>
+<!-- Leaflet JS -->
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
 <body>
   <div id="sidebarContainer"></div>
   <div class="main">
@@ -18,6 +27,8 @@
 
     <label for="poiText">Beskrivelse:</label><br>
     <textarea id="poiText"></textarea><br>
+<h3>Velg posisjon på kartet</h3>
+<div id="map" style="height: 300px; margin-bottom: 20px;"></div>
 
     <label for="latitude">Latitude:</label>
     <input type="text" id="latitude"><br>
@@ -103,6 +114,29 @@
     });
 
     loadRoutes();
+    // Sett opp kartet og marker
+const map = L.map('map').setView([62.47, 6.15], 10); // Sentrert på Ålesund
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap',
+}).addTo(map);
+
+let marker;
+
+map.on('click', function (e) {
+  const lat = e.latlng.lat.toFixed(6);
+  const lng = e.latlng.lng.toFixed(6);
+
+  document.getElementById('latitude').value = lat;
+  document.getElementById('longitude').value = lng;
+
+  if (marker) {
+    marker.setLatLng(e.latlng);
+  } else {
+    marker = L.marker(e.latlng).addTo(map);
+  }
+});
+
   </script>
 </body>
 </html>
