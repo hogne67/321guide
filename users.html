@@ -3,21 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <title>Brukerlogin</title>
+  <link rel="stylesheet" href="admin-layout.css">
 </head>
 <body>
-  <h1>Innlogging med Google</h1>
+  <div id="sidebarContainer"></div>
+  <div class="main">
+    <h1>Innlogging med Google</h1>
 
-  <div id="userInfo" style="display: none;">
-    <p>Du er logget inn som: <span id="userEmail"></span></p>
-    <button id="logoutBtn">Logg ut</button>
+    <div id="userInfo" style="display: none;">
+      <p>Du er logget inn som: <span id="userEmail"></span></p>
+      <button id="logoutBtn">Logg ut</button>
+    </div>
+
+    <div id="loginSection">
+      <button id="loginBtn">Logg inn med Google</button>
+    </div>
   </div>
 
-  <div id="loginSection">
-    <button id="loginBtn">Logg inn med Google</button>
-  </div>
+  <script>
+    fetch("sidebar.html")
+      .then(res => res.text())
+      .then(html => document.getElementById("sidebarContainer").innerHTML = html);
+  </script>
 
   <script type="module">
-    import { auth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from './firebase-init.js';
+    import {
+      auth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+    } from './firebase-init.js';
 
     const loginBtn = document.getElementById('loginBtn');
     const logoutBtn = document.getElementById('logoutBtn');
