@@ -1,0 +1,59 @@
+
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Rutevisning</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+  <h1 id="routeTitle">Rute</h1>
+  <div id="map" style="height: 400px;"></div>
+  <p id="routeDescription"></p>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module">
+    import { db } from './firebase-init.js';
+    import {
+      doc, getDoc, collection, getDocs
+    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const routeId = urlParams.get("routeId");
+    const titleEl = document.getElementById("routeTitle");
+    const descEl = document.getElementById("routeDescription");
+
+    const map = L.map('map').setView([62.47, 6.15], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    async function loadRoute() {
+      const routeRef = doc(db, "routes", routeId);
+      const routeSnap = await getDoc(routeRef);
+      const routeData = routeSnap.data();
+
+      titleEl.textContent = routeData.name;
+      descEl.textContent = routeData.description || "";
+
+      const poiSnap = await getDocs(collection(db, `routes/${routeId}/pois`));
+      let bounds = [];
+
+      poiSnap.forEach(doc => {
+        const poi = doc.data();
+        const marker = L.marker([poi.lat, poi.lng])
+          .addTo(map)
+          .bindPopup(\`<strong>\${poi.title}</strong><br><a href="poi.html?routeId=\${routeId}&poiId=\${doc.id}">Åpne</a>\`);
+        bounds.push([poi.lat, poi.lng]);
+      });
+
+      if (bounds.length > 0) {
+        map.fitBounds(bounds);
+      }
+    }
+
+    loadRoute();
+  </script>
+</body>
+</html>
