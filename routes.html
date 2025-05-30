@@ -2,67 +2,108 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8">
-  <title>Ruter</title>
+  <title>Ruteadministrasjon</title>
   <link rel="stylesheet" href="admin-layout.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
   <div id="sidebarContainer"></div>
-  <div class="main">
-    <h1>Opprett ny rute</h1>
-    <label for="routeName">Navn:</label>
-    <input type="text" id="routeName"><br>
-    <label for="routeDescription">Beskrivelse:</label>
-    <textarea id="routeDescription"></textarea><br>
-    <label for="routeLanguage">Språk:</label>
-    <input type="text" id="routeLanguage"><br>
-    <button id="saveRoute">Lagre rute</button>
 
-    <h2>Eksisterende ruter</h2>
-    <ul id="routeList"></ul>
+  <div class="main">
+    <h1>Ruter</h1>
+
+    <label for="routeSelect">Velg rute:</label>
+    <select id="routeSelect">
+      <option value="">-- Velg en rute --</option>
+    </select>
+
+    <div id="routeDetails" style="margin-top: 20px;"></div>
+
+    <h2>Punkter i valgt rute</h2>
+    <ul id="poiList"></ul>
+
+    <div id="map" style="height: 400px; margin-top: 20px;"></div>
   </div>
 
+  <!-- Sidebar -->
   <script>
     fetch("sidebar.html")
       .then(res => res.text())
       .then(html => document.getElementById("sidebarContainer").innerHTML = html);
   </script>
 
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Firebase og funksjon -->
   <script type="module">
     import { db } from './firebase-init.js';
-    import { collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+    import {
+      collection, getDocs, doc, getDoc, query
+    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-    const routeCollection = collection(db, "routes");
-    const saveBtn = document.getElementById('saveRoute');
-    const routeList = document.getElementById('routeList');
+    const routeSelect = document.getElementById("routeSelect");
+    const routeDetails = document.getElementById("routeDetails");
+    const poiList = document.getElementById("poiList");
 
-    saveBtn.addEventListener("click", async () => {
-      const name = document.getElementById('routeName').value;
-      const desc = document.getElementById('routeDescription').value;
-      const lang = document.getElementById('routeLanguage').value;
+    const map = L.map('map').setView([62.47, 6.15], 9);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
 
-      if (!name || !lang) return alert("Navn og språk er påkrevd.");
-
-      await addDoc(routeCollection, {
-        name,
-        description: desc,
-        language: lang,
-        created: new Date()
-      });
-
-      alert("Rute lagret!");
-      loadRoutes();
-    });
+    let poiMarkers = [];
 
     async function loadRoutes() {
-      routeList.innerHTML = "";
-      const snapshot = await getDocs(routeCollection);
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const li = document.createElement('li');
-        li.textContent = `${data.name} (${data.language})`;
-        routeList.appendChild(li);
+      const snapshot = await getDocs(collection(db, "routes"));
+      snapshot.forEach(docSnap => {
+        const option = document.createElement("option");
+        option.value = docSnap.id;
+        option.textContent = docSnap.data().name;
+        routeSelect.appendChild(option);
       });
     }
+
+    routeSelect.addEventListener("change", async () => {
+      const routeId = routeSelect.value;
+      if (!routeId) return;
+
+      // Hent og vis rutens detaljer
+      const routeRef = doc(db, "routes", routeId);
+      const routeDoc = await getDoc(routeRef);
+      const routeData = routeDoc.data();
+
+      routeDetails.innerHTML = `
+        <p><strong>Navn:</strong> ${routeData.name}</p>
+        <p><strong>Beskrivelse:</strong> ${routeData.description || "–"}</p>
+        <p><strong>Språk:</strong> ${routeData.language}</p>
+      `;
+
+      // Hent tilhørende POI
+      const poiRef = collection(db, `routes/${routeId}/pois`);
+      const poiSnap = await getDocs(poiRef);
+
+      poiList.innerHTML = "";
+      poiMarkers.forEach(marker => map.removeLayer(marker));
+      poiMarkers = [];
+
+      poiSnap.forEach(poiDoc => {
+        const poi = poiDoc.data();
+
+        const li = document.createElement("li");
+        li.textContent = `${poi.title} (${poi.lat}, ${poi.lng})`;
+        poiList.appendChild(li);
+
+        const marker = L.marker([poi.lat, poi.lng])
+          .addTo(map)
+          .bindPopup(`<strong>${poi.title}</strong><br>${poi.text}`);
+        poiMarkers.push(marker);
+      });
+
+      if (poiMarkers.length > 0) {
+        const group = L.featureGroup(poiMarkers);
+        map.fitBounds(group.getBounds().pad(0.2));
+      }
+    });
 
     loadRoutes();
   </script>
