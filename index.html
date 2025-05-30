@@ -3,147 +3,35 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Audioguide – Firebase dynamisk visning</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <style>
-    body { font-family: sans-serif; background: #f7f7f7; margin: 0; }
-    .container { max-width: 800px; margin: auto; padding: 1rem; background: white; }
-    h1 { font-size: 1.8rem; margin-bottom: 1rem; }
-    .poi { margin-bottom: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 1rem; }
-    .coords { font-size: 0.9rem; color: gray; }
-    audio { width: 100%; margin-top: 0.5rem; }
-    img.poi-img { width: 100%; border-radius: 8px; margin-top: 1rem; }
-    #map { height: 300px; margin: 2rem 0; }
-    button { padding: 1rem; background: #007bff; color: white; border: none; border-radius: 0.5rem; cursor: pointer; }
-    button:hover { background: #0056b3; }
-  </style>
+  <title>Velg en rute</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>🎧 Nettbasert Audioguide</h1>
-    <p>Trykk på knappen under for å starte GPS-guiding. Guiden spiller automatisk når du nærmer deg et punkt.</p>
-    <button onclick="getLocation()">🎯 Start GPS-guiding</button>
-    <p id="status"></p>
-    <div id="map"></div>
-    <div id="poiContainer"></div>
-  </div>
+  <h1>Velg en rute</h1>
+  <div id="routeList"></div>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCAPpamFocyVPlGnTl-mDBLxDDdNmLK4Xk",
-      authDomain: "pois-75b5f.firebaseapp.com",
-      projectId: "pois-75b5f",
-      storageBucket: "pois-75b5f.firebasestorage.app",
-      messagingSenderId: "255931335310",
-      appId: "1:255931335310:web:491d5eb8d484574962ffdf"
-    };
+  <script type="module">
+    import { db } from './firebase-init.js';
+    import { collection, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    const routeList = document.getElementById("routeList");
 
-    const pois = [];
-    let map;
-
-    function createPOIElement(poi, index) {
-      const div = document.createElement('div');
-      div.className = 'poi';
-      div.innerHTML = `
-        <h2>${poi.title}</h2>
-        <p>${poi.description}</p>
-        <img src="${poi.imageUrl}" alt="${poi.title}" class="poi-img">
-        <audio id="audio${index}">
-          <source src="${poi.audioUrl}" type="audio/mpeg">
-          Nettleseren din støtter ikke lydavspilling.
-        </audio>
-        <p class="coords">Koordinater: ${poi.latitude.toFixed(5)}°N, ${poi.longitude.toFixed(5)}°Ø</p>
-      `;
-      document.getElementById("poiContainer").appendChild(div);
-    }
-
-    function initMap(centerLat, centerLon) {
-      map = L.map('map').setView([centerLat, centerLon], 15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap-bidragsytere'
-      }).addTo(map);
-    }
-
-    function loadPOIs() {
-      db.collection("pois").get().then(snapshot => {
-        snapshot.forEach((doc, index) => {
-          const data = doc.data();
-          pois.push({ ...data, audioId: `audio${index}` });
-          createPOIElement(data, index);
-        });
-
-        if (pois.length > 0) {
-          const center = pois[0];
-          initMap(center.latitude, center.longitude);
-          pois.forEach(p => {
-            L.marker([p.latitude, p.longitude]).addTo(map)
-              .bindPopup(p.title);
-          });
-        }
+    async function loadRoutes() {
+      const snapshot = await getDocs(collection(db, "routes"));
+      snapshot.forEach(doc => {
+        const route = doc.data();
+        const div = document.createElement("div");
+        div.className = "route-card";
+        div.innerHTML = \`
+          <h2>\${route.name}</h2>
+          <p>\${route.description || "Ingen beskrivelse."}</p>
+          <a href="route.html?routeId=\${doc.id}">Gå til rute</a>
+        \`;
+        routeList.appendChild(div);
       });
     }
 
-    function getLocation() {
-      const status = document.getElementById("status");
-      if (navigator.geolocation) {
-        status.textContent = "GPS aktivert – følger posisjonen din...";
-        navigator.geolocation.watchPosition(checkProximity, showError, { enableHighAccuracy: true });
-      } else {
-        status.textContent = "Nettleseren din støtter ikke posisjonsdeling.";
-      }
-    }
-
-    function checkProximity(position) {
-      const lat = position.coords.latitude;
-      const lon = position.coords.longitude;
-      pois.forEach(p => {
-        const dist = getDistance(lat, lon, p.latitude, p.longitude);
-        if (dist <= p.radius) {
-          const audio = document.getElementById(p.audioId);
-          if (audio && audio.paused) {
-            audio.play();
-          }
-        }
-      });
-    }
-
-    function getDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371000;
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    }
-
-    function toRad(degrees) {
-      return degrees * Math.PI / 180;
-    }
-
-    function showError(error) {
-      const status = document.getElementById("status");
-      switch(error.code) {
-        case error.PERMISSION_DENIED:
-          status.textContent = "Du må tillate posisjonsdeling."; break;
-        case error.POSITION_UNAVAILABLE:
-          status.textContent = "Posisjonsdata er utilgjengelig."; break;
-        case error.TIMEOUT:
-          status.textContent = "Tidsavbrudd ved henting av posisjon."; break;
-        default:
-          status.textContent = "En ukjent feil oppstod.";
-      }
-    }
-
-    loadPOIs();
+    loadRoutes();
   </script>
 </body>
 </html>
