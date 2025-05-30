@@ -1,41 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="no">
 <head>
   <meta charset="UTF-8">
-  <title>Brukeroversikt</title>
+  <title>Brukerlogin</title>
 </head>
 <body>
-  <h1>Brukeradministrasjon</h1>
+  <h1>Innlogging med Google</h1>
 
-  <button onclick="signIn()">Logg inn med Google</button>
-  <button onclick="signOut()">Logg ut</button>
+  <div id="userInfo" style="display: none;">
+    <p>Du er logget inn som: <span id="userEmail"></span></p>
+    <button id="logoutBtn">Logg ut</button>
+  </div>
 
-  <p id="userInfo">Ikke innlogget</p>
+  <div id="loginSection">
+    <button id="loginBtn">Logg inn med Google</button>
+  </div>
 
   <script type="module">
     import { auth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from './firebase-init.js';
 
-    function signIn() {
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const userInfo = document.getElementById('userInfo');
+    const userEmail = document.getElementById('userEmail');
+    const loginSection = document.getElementById('loginSection');
+
+    loginBtn.addEventListener("click", async () => {
       const provider = new GoogleAuthProvider();
-      signInWithPopup(auth, provider)
-        .then(result => {
-          document.getElementById('userInfo').textContent = `Innlogget som: ${result.user.displayName} (${result.user.email})`;
-        })
-        .catch(error => alert(error.message));
-    }
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        alert("Innlogging feilet: " + error.message);
+      }
+    });
 
-    function signOutUser() {
-      signOut(auth).then(() => {
-        document.getElementById('userInfo').textContent = 'Ikke innlogget';
-      });
-    }
+    logoutBtn.addEventListener("click", () => {
+      signOut(auth);
+    });
 
-    window.signIn = signIn;
-    window.signOut = signOutUser;
-
-    onAuthStateChanged(auth, user => {
+    onAuthStateChanged(auth, (user) => {
       if (user) {
-        document.getElementById('userInfo').textContent = `Innlogget som: ${user.displayName} (${user.email})`;
+        userInfo.style.display = "block";
+        loginSection.style.display = "none";
+        userEmail.textContent = user.email;
+      } else {
+        userInfo.style.display = "none";
+        loginSection.style.display = "block";
       }
     });
   </script>
