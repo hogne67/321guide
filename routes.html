@@ -23,6 +23,28 @@
     <ul id="poiList"></ul>
 
     <div id="map" style="height: 400px; margin-top: 20px;"></div>
+
+    <h2>Legg til nytt punkt</h2>
+
+    <label for="poiTitle">Tittel:</label>
+    <input type="text" id="poiTitle"><br>
+
+    <label for="poiText">Beskrivelse:</label><br>
+    <textarea id="poiText"></textarea><br>
+
+    <label for="latitude">Latitude:</label>
+    <input type="text" id="latitude"><br>
+
+    <label for="longitude">Longitude:</label>
+    <input type="text" id="longitude"><br>
+
+    <label for="imageFile">Bilde:</label>
+    <input type="file" id="imageFile"><br>
+
+    <label for="audioFile">Lyd:</label>
+    <input type="file" id="audioFile"><br>
+
+    <button id="savePoi">Lagre punkt</button>
   </div>
 
   <!-- Sidebar -->
@@ -35,12 +57,15 @@
   <!-- Leaflet -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Firebase og funksjon -->
+  <!-- Firebase -->
   <script type="module">
-    import { db } from './firebase-init.js';
+    import { db, storage } from './firebase-init.js';
     import {
-      collection, getDocs, doc, getDoc, query
+      collection, getDocs, doc, getDoc, addDoc
     } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+    import {
+      ref, uploadBytes, getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
 
     const routeSelect = document.getElementById("routeSelect");
     const routeDetails = document.getElementById("routeDetails");
@@ -67,7 +92,6 @@
       const routeId = routeSelect.value;
       if (!routeId) return;
 
-      // Hent og vis rutens detaljer
       const routeRef = doc(db, "routes", routeId);
       const routeDoc = await getDoc(routeRef);
       const routeData = routeDoc.data();
@@ -78,7 +102,6 @@
         <p><strong>Språk:</strong> ${routeData.language}</p>
       `;
 
-      // Hent tilhørende POI
       const poiRef = collection(db, `routes/${routeId}/pois`);
       const poiSnap = await getDocs(poiRef);
 
@@ -103,6 +126,63 @@
         const group = L.featureGroup(poiMarkers);
         map.fitBounds(group.getBounds().pad(0.2));
       }
+    });
+
+    // Klikk i kartet setter lat/lng-felt
+    map.on('click', function (e) {
+      const lat = e.latlng.lat.toFixed(6);
+      const lng = e.latlng.lng.toFixed(6);
+      document.getElementById('latitude').value = lat;
+      document.getElementById('longitude').value = lng;
+    });
+
+    async function uploadFile(file, pathPrefix) {
+      const fileRef = ref(storage, `${pathPrefix}/${file.name}`);
+      await uploadBytes(fileRef, file);
+      return await getDownloadURL(fileRef);
+    }
+
+    document.getElementById("savePoi").addEventListener("click", async () => {
+      const routeId = routeSelect.value;
+      const title = document.getElementById('poiTitle').value;
+      const text = document.getElementById('poiText').value;
+      const lat = parseFloat(document.getElementById('latitude').value);
+      const lng = parseFloat(document.getElementById('longitude').value);
+      const imageFile = document.getElementById('imageFile').files[0];
+      const audioFile = document.getElementById('audioFile').files[0];
+
+      if (!routeId || !title || isNaN(lat) || isNaN(lng)) {
+        alert("Fyll ut rute, tittel og koordinater.");
+        return;
+      }
+
+      let imageUrl = "";
+      let audioUrl = "";
+
+      if (imageFile) imageUrl = await uploadFile(imageFile, `images/${routeId}`);
+      if (audioFile) audioUrl = await uploadFile(audioFile, `audio/${routeId}`);
+
+      const poiCollection = collection(db, `routes/${routeId}/pois`);
+      await addDoc(poiCollection, {
+        title,
+        text,
+        lat,
+        lng,
+        imageUrl,
+        audioUrl,
+        created: new Date()
+      });
+
+      alert("Punkt lagret!");
+
+      document.getElementById('poiTitle').value = "";
+      document.getElementById('poiText').value = "";
+      document.getElementById('latitude').value = "";
+      document.getElementById('longitude').value = "";
+      document.getElementById('imageFile').value = "";
+      document.getElementById('audioFile').value = "";
+
+      routeSelect.dispatchEvent(new Event("change"));
     });
 
     loadRoutes();
