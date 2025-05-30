@@ -1,23 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="no">
 <head>
   <meta charset="UTF-8">
-  <title>Administrer media</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCAPpamFocyVPlGnTl-mDBLxDDdNmLK4Xk",
-      authDomain: "pois-75b5f.firebaseapp.com",
-      projectId: "pois-75b5f",
-      storageBucket: "pois-75b5f.firebasestorage.app",
-      messagingSenderId: "255931335310",
-      appId: "1:255931335310:web:491d5eb8d484574962ffdf"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const storage = firebase.storage();
-  </script>
+  <title>Mediaoversikt</title>
 </head>
 <body>
   <h1>Mediaoversikt</h1>
@@ -29,20 +14,43 @@
   <h2>Lagrede filer</h2>
   <ul id="mediaList"></ul>
 
-  <script>
+  <script type="module">
+    import { storage } from './firebase-init.js';
+    import {
+      ref, uploadBytes, getDownloadURL, listAll
+    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+
+    const mediaInput = document.getElementById("mediaInput");
+    const mediaList = document.getElementById("mediaList");
+
     async function uploadMedia() {
-      const file = document.getElementById('mediaInput').files[0];
-      if (!file) return alert('Velg en fil først');
+      const file = mediaInput.files[0];
+      if (!file) return alert("Velg en fil først");
 
       const path = `misc-media/${file.name}`;
-      const ref = storage.ref(path);
-      await ref.put(file);
-      const url = await ref.getDownloadURL();
+      const fileRef = ref(storage, path);
+      await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(fileRef);
 
-      const li = document.createElement('li');
+      const li = document.createElement("li");
       li.innerHTML = `<a href="${url}" target="_blank">${file.name}</a>`;
-      document.getElementById('mediaList').appendChild(li);
+      mediaList.appendChild(li);
     }
+
+    async function listMedia() {
+      const listRef = ref(storage, 'misc-media/');
+      const res = await listAll(listRef);
+      mediaList.innerHTML = "";
+      for (const itemRef of res.items) {
+        const url = await getDownloadURL(itemRef);
+        const li = document.createElement("li");
+        li.innerHTML = `<a href="${url}" target="_blank">${itemRef.name}</a>`;
+        mediaList.appendChild(li);
+      }
+    }
+
+    listMedia();
+    window.uploadMedia = uploadMedia;
   </script>
 </body>
 </html>
