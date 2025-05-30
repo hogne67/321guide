@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Publisher - Opprett rute og POI</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+</head>
+<body>
+  <h1>Publisher</h1>
+  <h2>1. Opprett ny rute</h2>
+  <input type="text" id="routeName" placeholder="Navn på rute">
+  <textarea id="routeDescription" placeholder="Beskrivelse"></textarea>
+  <button onclick="createRoute()">Opprett rute</button>
+
+  <h2>2. Legg til POI i valgt rute</h2>
+  <select id="routeSelector"></select>
+  <input type="text" id="poiTitle" placeholder="Tittel">
+  <textarea id="poiText" placeholder="Beskrivelse"></textarea>
+  <input type="number" id="latitude" placeholder="Latitude">
+  <input type="number" id="longitude" placeholder="Longitude">
+  <input type="file" id="imageInput">
+  <input type="file" id="audioInput">
+  <button onclick="addPOI()">Legg til POI</button>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCAPpamFocyVPlGnTl-mDBLxDDdNmLK4Xk",
+      authDomain: "pois-75b5f.firebaseapp.com",
+      projectId: "pois-75b5f",
+      storageBucket: "pois-75b5f.firebasestorage.app",
+      messagingSenderId: "255931335310",
+      appId: "1:255931335310:web:491d5eb8d484574962ffdf"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    async function createRoute() {
+      const name = document.getElementById('routeName').value;
+      const description = document.getElementById('routeDescription').value;
+      const docRef = await db.collection('routes').add({ name, description });
+      alert('Rute opprettet');
+      loadRoutes();
+    }
+
+    async function loadRoutes() {
+      const selector = document.getElementById('routeSelector');
+      selector.innerHTML = '';
+      const snapshot = await db.collection('routes').get();
+      snapshot.forEach(doc => {
+        const option = document.createElement('option');
+        option.value = doc.id;
+        option.textContent = doc.data().name;
+        selector.appendChild(option);
+      });
+    }
+
+    async function addPOI() {
+      const routeId = document.getElementById('routeSelector').value;
+      const title = document.getElementById('poiTitle').value;
+      const text = document.getElementById('poiText').value;
+      const lat = parseFloat(document.getElementById('latitude').value);
+      const lng = parseFloat(document.getElementById('longitude').value);
+
+      const imageFile = document.getElementById('imageInput').files[0];
+      const audioFile = document.getElementById('audioInput').files[0];
+
+      const imageRef = storage.ref(`poi-images/${imageFile.name}`);
+      const audioRef = storage.ref(`poi-audio/${audioFile.name}`);
+
+      await imageRef.put(imageFile);
+      const imageUrl = await imageRef.getDownloadURL();
+
+      await audioRef.put(audioFile);
+      const audioUrl = await audioRef.getDownloadURL();
+
+      await db.collection('routes').doc(routeId).collection('pois').add({
+        title,
+        text,
+        lat,
+        lng,
+        imageUrl,
+        audioUrl
+      });
+
+      alert('POI lagt til');
+    }
+
+    loadRoutes();
+  </script>
+</body>
+</html>
