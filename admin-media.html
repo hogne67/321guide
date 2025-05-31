@@ -20,16 +20,12 @@
   </style>
 </head>
 <body>
-  <div class="sidebar">
-    <h3>Adminpanel</h3>
-    <ul>
-      <li><a href="admin-all-routes.html">Alle ruter</a></li>
-      <li><a href="admin-route.html">Ny rute</a></li>
-      <li><a href="admin-poi.html">Rediger POI</a></li>
-      <li><a href="admin-media.html">Media</a></li>
-      <li><a href="admin-users.html">Brukere</a></li>
-      <li><a href="login.html">Logg inn</a></li>
-    </ul>
+  <div class="sidebar" id="sidebar"></div>
+<script>
+  fetch("/components/sidebar.html")
+    .then(response => response.text())
+    .then(html => document.getElementById("sidebar").innerHTML = html);
+</script>
   </div>
   <div class="main">
     <h1>Last opp media</h1>
