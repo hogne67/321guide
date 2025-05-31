@@ -1,2 +1,25 @@
-<!-- Tidligere media.html -->
-<!-- Her kommer media-opplasting -->
+
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Media</title>
+  <script type="module">
+    import { checkAccess } from './auth.js';
+    checkAccess(['admin', 'super']);
+  </script>
+  <link rel="stylesheet" href="admin-layout.css">
+</head>
+<body>
+  <div class="sidebar" data-include="sidebar.html"></div>
+  <main>
+    <h1>Mediaoversikt</h1>
+    <h2>Last opp ny mediafil</h2>
+    <input type="file" id="mediaInput">
+    <button onclick="uploadMedia()">Last opp</button>
+    <h2>Lagrede filer</h2>
+    <ul id="mediaList"></ul>
+  </main>
+  <script type="module" src="./admin-media.js"></script>
+</body>
+</html>
