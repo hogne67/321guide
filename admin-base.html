@@ -1,0 +1,32 @@
+
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Adminpanel – Grunnskall</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; display: flex; }
+    .sidebar { width: 220px; background: #222; color: white; padding: 1rem; height: 100vh; }
+    .main { flex-grow: 1; padding: 2rem; }
+    .sidebar a { color: white; display: block; margin-bottom: 1rem; text-decoration: none; }
+    .sidebar a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <!-- Sidebar lastes inn automatisk -->
+  </div>
+
+  <div class="main">
+    <h1>Adminskall</h1>
+    <p>Her kan du fylle inn ditt admininnhold.</p>
+  </div>
+
+  <script>
+    fetch("/components/sidebar.html")
+      .then(response => response.text())
+      .then(html => document.getElementById("sidebar").innerHTML = html);
+  </script>
+</body>
+</html>
