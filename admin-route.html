@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="no">
 <head>
@@ -6,21 +7,22 @@
   <link rel="stylesheet" href="style.css">
   <style>
     body { font-family: sans-serif; margin: 0; display: flex; }
-    .sidebar { width: 200px; background: #222; color: white; height: 100vh; padding: 1rem; }
+    .sidebar {
+      width: 200px; background: #eee; height: 100vh;
+      padding: 1rem; border-right: 1px solid #ccc;
+    }
     .main { flex-grow: 1; padding: 2rem; }
-    input, textarea, select { width: 100%; padding: 0.5rem; margin-bottom: 1rem; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 0.5rem 0; }
+    a { text-decoration: none; color: #333; }
+    a:hover { text-decoration: underline; }
+    input, textarea, button { width: 100%; padding: 0.5rem; margin-bottom: 1rem; }
     label { font-weight: bold; margin-top: 1rem; display: block; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; }
-    img.preview { width: 100%; max-width: 300px; margin-bottom: 1rem; }
-    .poi-list { margin-top: 2rem; }
+    .preview { max-width: 300px; margin-bottom: 1rem; }
   </style>
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    </head>
-    
+</head>
 <body>
- <div class="sidebar">
+  <div class="sidebar">
     <h3>Adminpanel</h3>
     <ul>
       <li><a href="admin-all-routes.html">Alle ruter</a></li>
@@ -32,126 +34,25 @@
     </ul>
   </div>
   <div class="main">
-    <h1 id="header">Rediger rute</h1>
-    <label for="name">Tittel</label>
-    <input id="name" type="text">
+    <h1>Rediger rute</h1>
+
+    <label for="title">Tittel</label>
+    <input type="text" id="title">
 
     <label for="description">Beskrivelse</label>
     <textarea id="description" rows="4"></textarea>
 
-    <label for="languages">Språk (kommaseparert)</label>
-    <input id="languages" type="text">
+    <label for="image">Framsidebilde</label>
+    <input type="file" id="image" accept="image/*">
+    <img id="imagePreview" class="preview" style="display:none">
 
     <label for="price">Pris (valgfritt)</label>
-    <input id="price" type="number" step="0.01">
+    <input type="number" id="price" placeholder="0 for gratis">
 
-    <label for="cover">Framsidebilde</label>
-    <input id="cover" type="file" accept="image/*">
-    <img id="coverPreview" class="preview" style="display:none">
-
-    <label for="activeSwitch">Publiser</label>
-    <input id="activeSwitch" type="checkbox">
+    <label for="active">Aktiv</label>
+    <input type="checkbox" id="active">
 
     <button onclick="lagre()">💾 Lagre rute</button>
-
-    
-    <div style="display: flex; gap: 2rem;">
-      <div style="flex: 1;">
-        <h2>Punkter i ruta</h2>
-        <button onclick="location.href='admin-poi.html?routeId=' + routeId">➕ Legg til punkt</button>
-        <ul id="poiList" class="poi-list"></ul>
-      </div>
-      <div id="map" style="width: 400px; height: 400px; flex-shrink: 0; border: 1px solid #ccc;"></div>
-    </div>
-    
-    <button onclick="location.href='admin-poi.html?routeId=' + routeId">➕ Legg til punkt</button>
-    <ul id="poiList" class="poi-list"></ul>
   </div>
-
-  <script type="module">
-    import { db, storage } from './firebase-init.js';
-    import {
-      doc, getDoc, setDoc, collection, getDocs
-    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-    import {
-      ref, uploadBytes, getDownloadURL
-    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
-
-    const params = new URLSearchParams(location.search);
-    const routeId = params.get("id");
-    const isNew = params.get("new") === "true";
-
-    const nameInput = document.getElementById("name");
-    const descriptionInput = document.getElementById("description");
-    const languagesInput = document.getElementById("languages");
-    const priceInput = document.getElementById("price");
-    const activeSwitch = document.getElementById("activeSwitch");
-    const coverInput = document.getElementById("cover");
-    const coverPreview = document.getElementById("coverPreview");
-    const poiList = document.getElementById("poiList");
-
-    let coverUrl = "";
-
-    if (!isNew && routeId) {
-      const docRef = doc(db, "routes", routeId);
-      getDoc(docRef).then(snap => {
-        const r = snap.data();
-        nameInput.value = r.name || "";
-        descriptionInput.value = r.description || "";
-        languagesInput.value = (r.languages || []).join(", ");
-        priceInput.value = r.price || "";
-        activeSwitch.checked = !!r.active;
-        if (r.cover) {
-          coverUrl = r.cover;
-          coverPreview.src = r.cover;
-          coverPreview.style.display = "block";
-        }
-      });
-
-      
-    const map = L.map('map').setView([63.4, 10.4], 6);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-
-    getDocs(collection(db, `routes/${routeId}/pois`)).then(snapshot => {
-    
-        snapshot.forEach(poi => {
-          const li = document.createElement("li");
-          li.innerHTML = `<a href="admin-poi.html?routeId=${routeId}&poiId=${poi.id}">${poi.data().title || 'Uten tittel'}</a>`;
-          poiList.appendChild(li);
-          const data = poi.data();
-          if (data.lat && data.lng) {
-            L.marker([data.lat, data.lng]).addTo(map).bindPopup(data.title || "Uten tittel");
-          }
-        });
-      });
-    }
-
-    coverInput.addEventListener("change", async () => {
-      const file = coverInput.files[0];
-      if (!file) return;
-      const storageRef = ref(storage, "route-covers/" + file.name);
-      await uploadBytes(storageRef, file);
-      coverUrl = await getDownloadURL(storageRef);
-      coverPreview.src = coverUrl;
-      coverPreview.style.display = "block";
-    });
-
-    window.lagre = async function () {
-      const data = {
-        name: nameInput.value,
-        description: descriptionInput.value,
-        languages: languagesInput.value.split(",").map(s => s.trim()),
-        price: parseFloat(priceInput.value) || 0,
-        cover: coverUrl,
-        active: activeSwitch.checked
-      };
-      const id = routeId || Date.now().toString();
-      await setDoc(doc(db, "routes", id), data);
-      alert("Lagret!");
-      location.href = "admin-all-routes.html";
-    };
-  </script>
 </body>
 </html>
