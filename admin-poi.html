@@ -1,29 +1,31 @@
+
 <!DOCTYPE html>
 <html lang="no">
 <head>
-  <script type="module">
-    import { checkAccess } from './auth.js';
-    checkAccess(['admin', 'super']);
-  </script>
   <meta charset="UTF-8">
   <title>Rediger POI</title>
   <link rel="stylesheet" href="style.css">
   <style>
     body { font-family: sans-serif; margin: 0; display: flex; }
-    .sidebar { width: 200px; background: #222; color: white; height: 100vh; padding: 1rem; }
+    .sidebar {
+      width: 200px; background: #eee; height: 100vh;
+      padding: 1rem; border-right: 1px solid #ccc;
+    }
     .main { flex-grow: 1; padding: 2rem; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 0.5rem 0; }
+    a { text-decoration: none; color: #333; }
+    a:hover { text-decoration: underline; }
     input, textarea, select { width: 100%; padding: 0.5rem; margin-bottom: 1rem; }
     label { font-weight: bold; margin-top: 1rem; display: block; }
     button { padding: 0.5rem 1rem; font-size: 1rem; }
     .preview { width: 100%; max-width: 300px; margin-bottom: 1rem; }
   </style>
-
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
-
 <body>
- <div class="sidebar">
+  <div class="sidebar">
     <h3>Adminpanel</h3>
     <ul>
       <li><a href="admin-all-routes.html">Alle ruter</a></li>
@@ -35,137 +37,36 @@
     </ul>
   </div>
   <div class="main">
-    <h1 id="header">Rediger POI</h1>
+    <h1>Rediger POI</h1>
     <label for="title">Tittel</label>
     <input id="title" type="text">
+
     <label for="description">Beskrivelse</label>
     <textarea id="description" rows="4"></textarea>
-    <label for="lat">Breddegrad (latitude)</label>
+
+    <label for="lat">Breddegrad</label>
     <input id="lat" type="number" step="any">
-    <label for="lng">Lengdegrad (longitude)</label>
+
+    <label for="lng">Lengdegrad</label>
     <input id="lng" type="number" step="any">
+
     <label for="image">Bilde (JPG, PNG, WEBP)</label>
     <input id="image" type="file" accept="image/png, image/jpeg, image/webp">
     <img id="imagePreview" class="preview" style="display:none">
+
     <label for="audio">Lyd (MP3, WAV)</label>
     <input id="audio" type="file" accept="audio/mpeg, audio/wav">
     <audio id="audioPreview" controls style="display:none; width:100%;"></audio>
+
     <div id="map" style="height: 300px; margin-bottom: 1rem;"></div>
+
     <label for="language">Språk</label>
     <input id="language" type="text">
+
     <label for="active">Publisert</label>
     <input id="active" type="checkbox">
+
     <button onclick="lagre()">💾 Lagre POI</button>
   </div>
-
-  <script type="module">
-    import { db, storage } from './firebase-init.js';
-    import {
-      doc, getDoc, setDoc
-    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-    import {
-      ref, uploadBytes, getDownloadURL
-    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
-
-    const map = L.map('map').setView([63.4, 10.4], 6);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-    let marker;
-
-    map.on('click', function(e) {
-      const { lat, lng } = e.latlng;
-      latInput.value = lat.toFixed(6);
-      lngInput.value = lng.toFixed(6);
-      if (marker) {
-        marker.setLatLng([lat, lng]);
-      } else {
-        marker = L.marker([lat, lng]).addTo(map);
-      }
-    });
-
-    if (latInput.value && lngInput.value) {
-      marker = L.marker([parseFloat(latInput.value), parseFloat(lngInput.value)]).addTo(map);
-      map.setView([parseFloat(latInput.value), parseFloat(lngInput.value)], 13);
-    }
-
-    const params = new URLSearchParams(location.search);
-    const routeId = params.get("routeId");
-    const poiId = params.get("poiId");
-    const isNew = !poiId;
-
-    const titleInput = document.getElementById("title");
-    const descriptionInput = document.getElementById("description");
-    const latInput = document.getElementById("lat");
-    const lngInput = document.getElementById("lng");
-    const imageInput = document.getElementById("image");
-    const audioInput = document.getElementById("audio");
-    const languageInput = document.getElementById("language");
-    const activeSwitch = document.getElementById("active");
-    const imagePreview = document.getElementById("imagePreview");
-    const audioPreview = document.getElementById("audioPreview");
-
-    let imageUrl = "", audioUrl = "";
-
-    if (!isNew) {
-      const ref = doc(db, `routes/${routeId}/pois`, poiId);
-      getDoc(ref).then(snap => {
-        const poi = snap.data();
-        titleInput.value = poi.title || "";
-        descriptionInput.value = poi.description || "";
-        latInput.value = poi.lat || "";
-        lngInput.value = poi.lng || "";
-        languageInput.value = poi.language || "";
-        activeSwitch.checked = !!poi.active;
-        if (poi.image) {
-          imageUrl = poi.image;
-          imagePreview.src = poi.image;
-          imagePreview.style.display = "block";
-        }
-        if (poi.audio) {
-          audioUrl = poi.audio;
-          audioPreview.src = poi.audio;
-          audioPreview.style.display = "block";
-        }
-      });
-    }
-
-    imageInput.addEventListener("change", async () => {
-      const file = imageInput.files[0];
-      if (!file) return;
-      const storageRef = ref(storage, "poi-images/" + file.name);
-      await uploadBytes(storageRef, file);
-      imageUrl = await getDownloadURL(storageRef);
-      imagePreview.src = imageUrl;
-      imagePreview.style.display = "block";
-    });
-
-    audioInput.addEventListener("change", async () => {
-      const file = audioInput.files[0];
-      if (!file) return;
-      const storageRef = ref(storage, "poi-audio/" + file.name);
-      await uploadBytes(storageRef, file);
-      audioUrl = await getDownloadURL(storageRef);
-      audioPreview.src = audioUrl;
-      audioPreview.style.display = "block";
-    });
-
-    window.lagre = async function () {
-      const id = poiId || Date.now().toString();
-      const data = {
-        title: titleInput.value,
-        description: descriptionInput.value,
-        lat: parseFloat(latInput.value),
-        lng: parseFloat(lngInput.value),
-        image: imageUrl,
-        audio: audioUrl,
-        language: languageInput.value,
-        active: activeSwitch.checked
-      };
-      await setDoc(doc(db, `routes/${routeId}/pois`, id), data);
-      alert("Lagret!");
-      location.href = "admin-route.html?id=" + routeId;
-    };
-  </script>
 </body>
 </html>
