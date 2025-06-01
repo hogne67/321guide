@@ -1,4 +1,5 @@
-import { db, storage } from './firebase-init.js';
+import { db, storage } from "../firebase-init.js";
+import { checkAccess, loggUt } from "../auth/auth.js";
 import {
   doc, getDoc, setDoc
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
