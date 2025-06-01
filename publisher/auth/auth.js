@@ -1,84 +1,38 @@
-import {
-  getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signOut,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+// auth.js – for tilgangskontroll og utlogging
 
-import {
-  getFirestore,
-  doc,
-  getDoc,
-  setDoc
-} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { auth, db, signOut } from "../firebase-init.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-import { app } from "../firebase-init.js";
-
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// 👉 Google-innlogging
-export async function loggInnMedGoogle() {
-  const provider = new GoogleAuthProvider();
+/**
+ * Sjekker tilgangsnivået (rolle) til en bruker basert på UID.
+ * Returnerer f.eks. "admin", "editor", "viewer" eller "guest".
+ */
+export async function checkAccessLevel(uid) {
   try {
-    const result = await signInWithPopup(auth, provider);
-    const bruker = result.user;
+    const userRef = doc(db, "users", uid);
+    const userSnap = await getDoc(userRef);
 
-    // Lagre bruker i Firestore hvis ny
-    const brukerRef = doc(db, "users", bruker.uid);
-    const snapshot = await getDoc(brukerRef);
-
-    if (!snapshot.exists()) {
-      await setDoc(brukerRef, {
-        navn: bruker.displayName,
-        epost: bruker.email,
-        role: "editor", // default-rolle
-        opprettet: new Date()
-      });
+    if (userSnap.exists()) {
+      const data = userSnap.data();
+      return data.role || "guest";
+    } else {
+      return "guest";
     }
-
-    alert("Logget inn som: " + bruker.displayName);
-    window.location.href = "../admin/admin-all-routes.html"; // eller ønsket side
   } catch (error) {
-    console.error("Innlogging feilet:", error);
-    alert("Innlogging feilet: " + error.message);
+    console.error("Feil ved henting av rolle:", error);
+    return "guest";
   }
 }
 
-// 👉 Utlogging
-export async function loggUt() {
-  await signOut(auth);
-  alert("Du er logget ut");
-  window.location.href = "../../index.html"; // eller ønsket side
-}
-
-// 👉 Sjekk tilgang og rolle
-export async function checkAccess(allowedRoles = ["admin", "editor"]) {
-  return new Promise((resolve, reject) => {
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        alert("Du må logge inn først.");
-        window.location.href = "../../auth/login.html";
-        return reject("Ikke logget inn");
-      }
-
-      const docRef = doc(db, "users", user.uid);
-      const snapshot = await getDoc(docRef);
-
-      if (!snapshot.exists()) {
-        alert("Brukeren finnes ikke i databasen.");
-        return reject("Bruker mangler i Firestore");
-      }
-
-      const data = snapshot.data();
-      if (!allowedRoles.includes(data.role)) {
-        alert("Du har ikke tilgang til denne siden.");
-        window.location.href = "../../auth/login.html";
-        return reject("Tilgang nektet");
-      }
-
-      resolve(user);
+/**
+ * Logger ut brukeren og sender tilbake til login-siden.
+ */
+export function loggUt() {
+  signOut(auth)
+    .then(() => {
+      window.location.href = "../auth/login.html";
+    })
+    .catch((error) => {
+      console.error("Feil ved utlogging:", error);
     });
-  });
 }
