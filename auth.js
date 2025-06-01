@@ -1,7 +1,7 @@
-import { Auth, onAuthStateChanged, signOut } from "firebase-init.js";
-import { app, db } from './firebase-init.js';
-import { doc, getDoc } from 'firebase/firestore';
-export const auth = getAuth(app);
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { auth, db } from './firebase-init.js';
+
 export async function checkAccess(allowedRoles) {
   return new Promise((resolve, reject) => {
     onAuthStateChanged(auth, async user => {
@@ -21,6 +21,7 @@ export async function checkAccess(allowedRoles) {
     });
   });
 }
+
 export function loggUt() {
   signOut(auth).then(() => window.location.href = "login.html");
 }
