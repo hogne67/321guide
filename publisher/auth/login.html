@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <title>Logg inn</title>
+  <link rel="stylesheet" href="../style.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    button {
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+    }
+    #feilmelding {
+      margin-top: 1rem;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔐 Logg inn for å administrere</h1>
+  <button id="loginBtn">Logg inn med Google</button>
+  <p id="feilmelding"></p>
+
+  <script type="module">
+    import { auth, GoogleAuthProvider, signInWithPopup } from "../firebase-init.js";
+    import { checkAccessLevel } from "./auth.js";
+
+    const loginBtn = document.getElementById("loginBtn");
+    const feilmelding = document.getElementById("feilmelding");
+
+    loginBtn.onclick = async () => {
+      try {
+        const result = await signInWithPopup(auth, new GoogleAuthProvider());
+        const user = result.user;
+
+        // Sjekk rolle i Firestore
+        const rolle = await checkAccessLevel(user.uid);
+        if (rolle === "admin" || rolle === "editor") {
+          window.location.href = "../admin/admin-all-routes.html";
+        } else {
+          feilmelding.textContent = "Du har ikke tilgang til adminpanelet.";
+        }
+      } catch (err) {
+        console.error("Innlogging feilet:", err);
+        feilmelding.textContent = "Innlogging feilet. Prøv igjen.";
+      }
+    };
+  </script>
+</body>
+</html>
