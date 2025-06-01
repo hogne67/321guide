@@ -15,10 +15,11 @@ const firebaseConfig = {
   apiKey: "AIzaSyAuERwFxQsdSAUdBMbcKBmwtrYlTFQNp4U",
   authDomain: "guide-a370b.firebaseapp.com",
   projectId: "guide-a370b",
-  storageBucket: "guide-a370b.appspot.com",
+  storageBucket: "guide-a370b.appspot.com",  // 🔁 Endret her
   messagingSenderId: "549286938289",
   appId: "1:549286938289:web:8c2140e3995143388a0490"
 };
+
 
 // Initialiser Firebase
 const app = initializeApp(firebaseConfig);
