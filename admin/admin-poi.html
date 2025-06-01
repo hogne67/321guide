@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <title>Rediger POI</title>
-  <link rel="stylesheet" href="../components/style.css">
+  <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
   <style>
     .container { display: flex; }
     .form-section { width: 45%; padding: 1rem; }
@@ -17,19 +15,25 @@
   </style>
 </head>
 <body>
+  <!-- Sidebar -->
   <div class="sidebar" id="sidebar"></div>
+  <script>
+    fetch("../components/sidebar.html")
+      .then(response => response.text())
+      .then(html => document.getElementById("sidebar").innerHTML = html);
+  </script>
 
+  <!-- Hovedinnhold -->
   <div class="main container">
     <div class="form-section">
       <h1 id="header">Rediger POI</h1>
 
       <label for="title">Tittel (maks 40 tegn)</label>
       <input id="title" type="text" maxlength="40">
-      <div id="titleCount">0/40</div>
 
       <label for="description">Beskrivelse</label>
       <textarea id="description" rows="5"></textarea>
-      <div id="descCount">0 ord, 0 tegn</div>
+      <div id="descCounter">0 ord, 0 tegn</div>
 
       <label for="image">Bilde (JPG, PNG, WEBP)</label>
       <input id="image" type="file" accept="image/png, image/jpeg, image/webp">
@@ -53,19 +57,13 @@
     </div>
   </div>
 
-  <!-- Sidebar og tilgangskontroll -->
-<div class="sidebar" id="sidebar"></div>
-<script>
-  fetch("../components/sidebar.html")
-    .then(response => response.text())
-    .then(html => document.getElementById("sidebar").innerHTML = html);
-</script>
+  <!-- Tilgangskontroll -->
   <script type="module">
     import { checkAccess } from '../auth.js';
     checkAccess(['admin', 'super']);
   </script>
 
-  <!-- JS med kart og lagring -->
+  <!-- Hovedscript -->
   <script type="module" src="admin-poi.js"></script>
 </body>
 </html>
