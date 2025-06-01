@@ -1,4 +1,4 @@
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import { Auth, onAuthStateChanged, signOut } from "firebase-init.js";
 import { app, db } from './firebase-init.js';
 import { doc, getDoc } from 'firebase/firestore';
 export const auth = getAuth(app);
