@@ -54,11 +54,12 @@
   </div>
 
   <!-- Sidebar og tilgangskontroll -->
-  <script>
-    fetch("../components/sidebar.html")
-      .then(response => response.text())
-      .then(html => document.getElementById("sidebar").innerHTML = html);
-  </script>
+<div class="sidebar" id="sidebar"></div>
+<script>
+  fetch("../components/sidebar.html")
+    .then(response => response.text())
+    .then(html => document.getElementById("sidebar").innerHTML = html);
+</script>
   <script type="module">
     import { checkAccess } from '../auth.js';
     checkAccess(['admin', 'super']);
