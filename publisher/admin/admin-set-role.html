@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sett brukerrolle</title>
+  <link rel="stylesheet" href="components/style.css" />
+</head>
+<body>
+  <div class="main" style="max-width: 500px; margin: 2rem auto;">
+    <h1>🔐 Brukerroller</h1>
+    <label for="uid">Brukerens UID:</label>
+    <input type="text" id="uid" placeholder="f.eks. abcd1234..." style="width: 100%;" />
+    
+    <label for="role">Ny rolle:</label>
+    <select id="role" style="width: 100%;">
+      <option value="user">user</option>
+      <option value="admin">admin</option>
+      <option value="super">super</option>
+    </select>
+
+    <button id="updateBtn" style="margin-top: 1rem;">🔄 Oppdater rolle</button>
+    <p id="message" style="color: green;"></p>
+  </div>
+
+  <script type="module">
+    import { db, auth } from './firebase-init.js';
+    import { doc, setDoc } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+    import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
+
+    const uidInput = document.getElementById("uid");
+    const roleSelect = document.getElementById("role");
+    const message = document.getElementById("message");
+
+    document.getElementById("updateBtn").addEventListener("click", async () => {
+      const uid = uidInput.value.trim();
+      const role = roleSelect.value;
+
+      if (!uid) {
+        alert("Skriv inn en UID");
+        return;
+      }
+
+      await setDoc(doc(db, "users", uid), { role }, { merge: true });
+      message.textContent = `✅ Rolle '${role}' satt for bruker ${uid}`;
+    });
+
+    // Viser UID til innlogget bruker
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        console.log("Din UID:", user.uid);
+      }
+    });
+  </script>
+</body>
+</html>
