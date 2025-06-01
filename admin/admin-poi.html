@@ -5,13 +5,13 @@
   <title>Rediger POI</title>
   <link rel="stylesheet" href="/components/style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
   <style>
     .container { display: flex; }
     .form-section { width: 45%; padding: 1rem; }
     .map-section { flex-grow: 1; height: 100vh; }
     .preview { max-width: 100%; margin-bottom: 1rem; }
-    textarea + div { font-size: 0.9rem; color: gray; margin-top: -0.5rem; margin-bottom: 1rem; }
+    textarea + div, #titleCount { font-size: 0.9rem; color: gray; margin-top: -0.5rem; margin-bottom: 1rem; }
   </style>
 </head>
 <body>
@@ -23,6 +23,7 @@
 
       <label for="title">Tittel (maks 40 tegn)</label>
       <input id="title" type="text" maxlength="40">
+      <div id="titleCount">0/40</div>
 
       <label for="description">Beskrivelse</label>
       <textarea id="description" rows="5"></textarea>
@@ -50,18 +51,24 @@
     </div>
   </div>
 
-  <!-- Sidebar og tilgangskontroll -->
+  <!-- Last inn sidebar -->
   <script>
     fetch("/components/sidebar.html")
-      .then(response => response.text())
+      .then(res => res.text())
       .then(html => document.getElementById("sidebar").innerHTML = html);
   </script>
+
+  <!-- Leaflet og Draw -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+  <!-- Autentisering -->
   <script type="module">
     import { checkAccess } from '../auth.js';
     checkAccess(['admin', 'super']);
   </script>
 
-  <!-- Funksjonalitet -->
+  <!-- Hovedfunksjonalitet -->
   <script type="module" src="admin-poi.js"></script>
 </body>
 </html>
