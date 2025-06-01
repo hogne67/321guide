@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Brukeradministrasjon</title>
+ <link rel="stylesheet" href="../style.css">
+  <style>
+    body { font-family: sans-serif; margin: 0; display: flex; }
+    .sidebar {
+      width: 200px; background: #eee; height: 100vh;
+      padding: 1rem; border-right: 1px solid #ccc;
+    }
+    .main { flex-grow: 1; padding: 2rem; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 0.5rem 0; }
+    a { text-decoration: none; color: #333; }
+    a:hover { text-decoration: underline; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
+  </style>
+</head>
+<body>
+<div class="sidebar" id="sidebar"></div>
+<script>
+  fetch("../components/sidebar.html")
+    .then(response => response.text())
+    .then(html => document.getElementById("sidebar").innerHTML = html);
+</script>
+  <div class="main">
+    <h1>Brukeradministrasjon</h1>
+    <p>Her kan du se alle registrerte brukere og endre roller.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>E-post</th>
+          <th>Navn</th>
+          <th>Rolle</th>
+          <th>Handling</th>
+        </tr>
+      </thead>
+      <tbody id="userTable">
+        <!-- Brukere lastes inn her -->
+      </tbody>
+    </table>
+  </div>
+<script type="module" src="admin-poi.js"></script>
+</body>
+</html>
