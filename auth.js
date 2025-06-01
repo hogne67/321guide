@@ -1,9 +1,7 @@
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { app, db } from './firebase-init.js';
 import { doc, getDoc } from 'firebase/firestore';
-
 export const auth = getAuth(app);
-
 export async function checkAccess(allowedRoles) {
   return new Promise((resolve, reject) => {
     onAuthStateChanged(auth, async user => {
