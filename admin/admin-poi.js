@@ -1,70 +1,119 @@
+import { db, storage } from './firebase-init.js';
+import {
+  doc, getDoc, setDoc
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import {
+  ref, uploadBytes, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
 
+const params = new URLSearchParams(location.search);
+const routeId = params.get("routeId");
+const poiId = params.get("poiId");
+const isNew = !poiId;
 
-<!DOCTYPE html>
-<html lang="no">
-<head>
-  <meta charset="UTF-8">
-  <title>Rediger POI</title>
-  <link rel="stylesheet" href="../components/style.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <style>
-    .container { display: flex; }
-    .form-section { width: 45%; padding: 1rem; }
-    .map-section { flex-grow: 1; height: 100vh; }
-    .preview { max-width: 100%; margin-bottom: 1rem; }
-    textarea + div { font-size: 0.9rem; color: gray; margin-top: -0.5rem; margin-bottom: 1rem; }
-  </style>
-</head>
-<body>
-  <div class="sidebar" id="sidebar"></div>
+const titleInput = document.getElementById("title");
+const descriptionInput = document.getElementById("description");
+const languageInput = document.getElementById("language");
+const activeSwitch = document.getElementById("active");
+const imageInput = document.getElementById("image");
+const audioInput = document.getElementById("audio");
 
-  <div class="main container">
-    <div class="form-section">
-      <h1 id="header">Rediger POI</h1>
+let imageUrl = "", audioUrl = "", centerLatLng = null;
 
-      <label for="title">Tittel (maks 40 tegn)</label>
-      <input id="title" type="text" maxlength="40">
-      <div id="titleCount">0/40</div>
+const titleCount = document.getElementById("titleCount");
+const descCount = document.getElementById("descCount");
 
-      <label for="description">Beskrivelse</label>
-      <textarea id="description" rows="5"></textarea>
-      <div id="descCount">0 ord, 0 tegn</div>
+titleInput.addEventListener("input", () => {
+  titleCount.textContent = `${titleInput.value.length}/40`;
+});
 
-      <label for="image">Bilde (JPG, PNG, WEBP)</label>
-      <input id="image" type="file" accept="image/png, image/jpeg, image/webp">
-      <img id="imagePreview" class="preview" style="display:none">
+descriptionInput.addEventListener("input", () => {
+  const text = descriptionInput.value;
+  const words = text.trim().split(/\s+/).filter(w => w);
+  descCount.textContent = `${text.length} tegn / ${words.length} ord`;
+});
 
-      <label for="audio">Lyd (MP3)</label>
-      <input id="audio" type="file" accept="audio/mpeg">
-      <audio id="audioPreview" controls style="display:none; width:100%;"></audio>
+const map = L.map('map').setView([63.4, 10.4], 6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors'
+}).addTo(map);
 
-      <label for="language">Språk</label>
-      <input id="language" type="text" placeholder="f.eks. no, en, de">
+let drawnItem = null;
+const drawControl = new L.Control.Draw({
+  draw: {
+    polyline: false,
+    rectangle: false,
+    circle: true,
+    marker: false,
+    circlemarker: false,
+    polygon: {
+      shapeOptions: { color: 'blue' }
+    }
+  },
+  edit: { featureGroup: new L.FeatureGroup() }
+});
+map.addControl(drawControl);
 
-      <label for="active">Publisert</label>
-      <input id="active" type="checkbox">
+const featureGroup = new L.FeatureGroup().addTo(map);
+map.on(L.Draw.Event.CREATED, e => {
+  featureGroup.clearLayers();
+  drawnItem = e.layer;
+  featureGroup.addLayer(drawnItem);
+  centerLatLng = drawnItem.getBounds().getCenter();
+});
 
-      <button onclick="lagre()">💾 Lagre POI</button>
-    </div>
+if (!isNew) {
+  const ref = doc(db, `routes/${routeId}/pois`, poiId);
+  getDoc(ref).then(snap => {
+    const poi = snap.data();
+    titleInput.value = poi.title || "";
+    descriptionInput.value = poi.description || "";
+    languageInput.value = poi.language || "";
+    activeSwitch.checked = !!poi.active;
+    if (poi.image) {
+      imageUrl = poi.image;
+    }
+    if (poi.audio) {
+      audioUrl = poi.audio;
+    }
+    if (poi.lat && poi.lng) {
+      centerLatLng = [poi.lat, poi.lng];
+      const marker = L.marker(centerLatLng).addTo(map);
+      map.setView(centerLatLng, 13);
+    }
+  });
+}
 
-    <div class="map-section">
-      <div id="map" style="height: 100%;"></div>
-    </div>
-  </div>
+imageInput.addEventListener("change", async () => {
+  const file = imageInput.files[0];
+  if (!file) return;
+  const storageRef = ref(storage, "poi-images/" + file.name);
+  await uploadBytes(storageRef, file);
+  imageUrl = await getDownloadURL(storageRef);
+});
 
-  <!-- Sidebar og tilgangskontroll -->
-  <script>
-    fetch("../components/sidebar.html")
-      .then(response => response.text())
-      .then(html => document.getElementById("sidebar").innerHTML = html);
-  </script>
-  <script type="module">
-    import { checkAccess } from '../auth.js';
-    checkAccess(['admin', 'super']);
-  </script>
+audioInput.addEventListener("change", async () => {
+  const file = audioInput.files[0];
+  if (!file) return;
+  const storageRef = ref(storage, "poi-audio/" + file.name);
+  await uploadBytes(storageRef, file);
+  audioUrl = await getDownloadURL(storageRef);
+});
 
-  <!-- Funksjonalitet -->
-  <script type="module" src="admin-poi.js"></script>
-</body>
-</html>
+window.lagre = async function () {
+  if (!centerLatLng) return alert("Du må tegne et område på kartet først.");
+  const id = poiId || Date.now().toString();
+  const data = {
+    title: titleInput.value,
+    description: descriptionInput.value,
+    lat: centerLatLng.lat,
+    lng: centerLatLng.lng,
+    image: imageUrl,
+    audio: audioUrl,
+    language: languageInput.value,
+    active: activeSwitch.checked
+  };
+  await setDoc(doc(db, `routes/${routeId}/pois`, id), data);
+  alert("Lagret!");
+  location.href = "admin-route.html?id=" + routeId;
+};
