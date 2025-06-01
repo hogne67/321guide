@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Sett admin-rettighet</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-functions.js"></script>
+  <script src="/publisher/firebase-init.js"></script>
+</head>
+<body>
+  <h2>Sett admin-rettighet</h2>
+  <p>Du må være logget inn som admin for å utføre dette.</p>
+
+  <label for="uid">Firebase UID:</label>
+  <input type="text" id="uid" placeholder="f.eks. 3kFJYHkqwOZw..." />
+  <button onclick="setAdmin()">Sett isAdmin = true</button>
+
+  <p id="status"></p>
+
+  <script>
+    const functions = firebase.functions();
+
+    async function setAdmin() {
+      const uid = document.getElementById('uid').value;
+      const status = document.getElementById('status');
+      if (!uid) return status.innerText = '❗ Skriv inn en UID først.';
+
+      try {
+        const callable = functions.httpsCallable('setAdminClaim');
+        const result = await callable({ uid });
+        status.innerText = `✅ isAdmin satt for UID: ${uid}`;
+      } catch (error) {
+        console.error(error);
+        status.innerText = '❌ Feil: ' + error.message;
+      }
+    }
+  </script>
+</body>
+</html>
