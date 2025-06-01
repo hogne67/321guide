@@ -1,68 +1,67 @@
-
 <!DOCTYPE html>
 <html lang="no">
 <head>
   <meta charset="UTF-8">
   <title>Rediger POI</title>
-  <link rel="stylesheet" href="../style.css">
-  <style>
-    body { font-family: sans-serif; margin: 0; display: flex; }
-    .sidebar {
-      width: 200px; background: #eee; height: 100vh;
-      padding: 1rem; border-right: 1px solid #ccc;
-    }
-    .main { flex-grow: 1; padding: 2rem; }
-    ul { list-style: none; padding: 0; }
-    li { margin: 0.5rem 0; }
-    a { text-decoration: none; color: #333; }
-    a:hover { text-decoration: underline; }
-    input, textarea, select { width: 100%; padding: 0.5rem; margin-bottom: 1rem; }
-    label { font-weight: bold; margin-top: 1rem; display: block; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; }
-    .preview { width: 100%; max-width: 300px; margin-bottom: 1rem; }
-  </style>
+  <link rel="stylesheet" href="/components/style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    .container { display: flex; }
+    .form-section { width: 45%; padding: 1rem; }
+    .map-section { flex-grow: 1; height: 100vh; }
+    .preview { max-width: 100%; margin-bottom: 1rem; }
+    textarea + div { font-size: 0.9rem; color: gray; margin-top: -0.5rem; margin-bottom: 1rem; }
+  </style>
 </head>
 <body>
-<div class="sidebar" id="sidebar"></div>
-<script>
-  fetch("../components/sidebar.html")
-    .then(response => response.text())
-    .then(html => document.getElementById("sidebar").innerHTML = html);
-</script>
-  <div class="main">
-    <h1>Rediger POI</h1>
-    <label for="title">Tittel</label>
-    <input id="title" type="text">
+  <div class="sidebar" id="sidebar"></div>
 
-    <label for="description">Beskrivelse</label>
-    <textarea id="description" rows="4"></textarea>
+  <div class="main container">
+    <div class="form-section">
+      <h1 id="header">Rediger POI</h1>
 
-    <label for="lat">Breddegrad</label>
-    <input id="lat" type="number" step="any">
+      <label for="title">Tittel (maks 40 tegn)</label>
+      <input id="title" type="text" maxlength="40">
 
-    <label for="lng">Lengdegrad</label>
-    <input id="lng" type="number" step="any">
+      <label for="description">Beskrivelse</label>
+      <textarea id="description" rows="5"></textarea>
+      <div id="descCounter">0 ord, 0 tegn</div>
 
-    <label for="image">Bilde (JPG, PNG, WEBP)</label>
-    <input id="image" type="file" accept="image/png, image/jpeg, image/webp">
-    <img id="imagePreview" class="preview" style="display:none">
+      <label for="image">Bilde (JPG, PNG, WEBP)</label>
+      <input id="image" type="file" accept="image/png, image/jpeg, image/webp">
+      <img id="imagePreview" class="preview" style="display:none">
 
-    <label for="audio">Lyd (MP3, WAV)</label>
-    <input id="audio" type="file" accept="audio/mpeg, audio/wav">
-    <audio id="audioPreview" controls style="display:none; width:100%;"></audio>
+      <label for="audio">Lyd (MP3)</label>
+      <input id="audio" type="file" accept="audio/mpeg">
+      <audio id="audioPreview" controls style="display:none; width:100%;"></audio>
 
-    <div id="map" style="height: 300px; margin-bottom: 1rem;"></div>
+      <label for="language">Språk</label>
+      <input id="language" type="text" placeholder="f.eks. no, en, de">
 
-    <label for="language">Språk</label>
-    <input id="language" type="text">
+      <label for="active">Publisert</label>
+      <input id="active" type="checkbox">
 
-    <label for="active">Publisert</label>
-    <input id="active" type="checkbox">
+      <button onclick="lagre()">💾 Lagre POI</button>
+    </div>
 
-    <button onclick="lagre()">💾 Lagre POI</button>
+    <div class="map-section">
+      <div id="map" style="height: 100%;"></div>
+    </div>
   </div>
-<script type="module" src="admin-poi.js"></script>
+
+  <!-- Sidebar og tilgangskontroll -->
+  <script>
+    fetch("/components/sidebar.html")
+      .then(response => response.text())
+      .then(html => document.getElementById("sidebar").innerHTML = html);
+  </script>
+  <script type="module">
+    import { checkAccess } from '../auth.js';
+    checkAccess(['admin', 'super']);
+  </script>
+
+  <!-- Funksjonalitet -->
+  <script type="module" src="admin-poi.js"></script>
 </body>
 </html>
