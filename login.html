@@ -50,7 +50,7 @@
 
       try {
         await signInWithEmailAndPassword(auth, email, password);
-        window.location.href = "admin-route.html";
+        window.location.href = "admin/admin-all-routes.html";
       } catch (err) {
         console.error("Login failed:", err);
         error.textContent = "Feil brukernavn eller passord";
