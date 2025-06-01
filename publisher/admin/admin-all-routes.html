@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Alle ruter</title>
-  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="publisher/style.css">
   <style>
     body { font-family: sans-serif; margin: 0; display: flex; }
     .sidebar {
@@ -55,13 +55,13 @@
 
   <script type="module">
     // Laster sidebar
-    fetch("../components/sidebar.html")
+    fetch("publisher/components/sidebar.html")
       .then(res => res.text())
       .then(html => document.getElementById("sidebar").innerHTML = html);
 
     // Importer Firebase og admin-logikk
-    import "../firebase-init.js";
-    import "./admin-poi.js";
+    import "publisher/firebase-init.js";
+    import "publisher/admin-poi.js";
   </script>
 </body>
 </html>
