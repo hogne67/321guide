@@ -1,0 +1,29 @@
+# 321guide
+
+Dette prosjektet er en komplett løsning for produksjon, administrasjon og publisering av GPS-baserte audioguider. Det er delt i to hoveddeler: en **frontend** for sluttbrukere og en **publisher** for produsenter/administratorer.
+
+oot/
+│
+├── publisher/ # Administrasjon og opplasting (krever innlogging)
+│ ├── auth/ # Innlogging og tilgangsstyring
+│ ├── components/ # Gjenbrukbare HTML-komponenter (sidebar m.m.)
+│ ├── lang/ # Språkfiler for oversettelse
+│ ├── routes/ # Oversikt og redigering av ruter og POI
+│ ├── users/ # Brukerroller og administrasjon
+│ ├── firebase-init.js
+│ ├── style.css
+│ └── index.html # Startside for administratorer
+│
+├── frontend/ # Brukergrensesnitt for sluttbrukere
+│ ├── route.html # Viser alle POI i en valgt rute
+│ ├── poi.html # Viser en enkelt POI med bilde, tekst og lyd
+│ ├── style.css
+│ ├── firebase-init.js
+│ └── index.html # Velg og start en rute
+│
+├── .firebaserc # Firebase-prosjektkonfigurasjon
+├── firebase.json # Firebase-hosting og deploy-oppsett
+├── vercel.json # (Valgfritt) Vercel-deploy-oppsett
+├── .gitignore
+└── README.md # Du er her
+
