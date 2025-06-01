@@ -27,19 +27,32 @@
   </main>
 
   <script type="module">
-    import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-    import { app } from './firebase-init.js';
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+    import { getAuth, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
 
+    const firebaseConfig = {
+      apiKey: "AIzaSyCAPpamFocyVPlGnTl-mDBLxDDdNmLK4Xk",
+      authDomain: "pois-75b5f.firebaseapp.com",
+      projectId: "pois-75b5f",
+      storageBucket: "pois-75b5f.firebasestorage.app",
+      messagingSenderId: "255931335310",
+      appId: "1:255931335310:web:491d5eb8d484574962ffdf"
+    };
+
+    const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+
     window.login = async function () {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
       const error = document.getElementById("error");
       error.textContent = "";
+
       try {
         await signInWithEmailAndPassword(auth, email, password);
         window.location.href = "admin-route.html";
       } catch (err) {
+        console.error("Login failed:", err);
         error.textContent = "Feil brukernavn eller passord";
       }
     };
