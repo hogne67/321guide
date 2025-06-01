@@ -21,7 +21,6 @@ export async function checkAccess(allowedRoles) {
     });
   });
 }
-
 export function loggUt() {
   signOut(auth).then(() => window.location.href = "login.html");
 }
