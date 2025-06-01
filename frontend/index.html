@@ -1,1 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>321Guide – Explore Nearby Routes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <img src="assets/logo.png" alt="321Guide" class="logo">
+    <select id="languageSelector">
+      <option value="en">English</option>
+      <option value="no">Norsk</option>
+    </select>
+  </header>
+
+  <main>
+    <h1 data-i18n="title">Available Routes</h1>
+    <div id="routesList" class="grid"></div>
+  </main>
+
+  <footer>
+    <p data-i18n="footer">Your personal audio guide, wherever you are.</p>
+  </footer>
+
+  <script type="module">
+    import { loadLanguage } from './js/lang.js';
+    import { fetchRoutes } from './js/routes.js';
+
+    document.getElementById('languageSelector').addEventListener('change', (e) => {
+      loadLanguage(e.target.value);
+    });
+
+    loadLanguage('en');
+    fetchRoutes();
+  </script>
+</body>
+</html>
 
