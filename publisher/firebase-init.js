@@ -10,15 +10,17 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
-// Konfigurasjon for 321guide-prosjektet
+// publisher/firebase-init.js
 const firebaseConfig = {
-  apiKey: "AIzaSyAuERwFxQsdSAUdBMbcKBmwtrYlTFQNp4U",
+  apiKey: "xxx",
   authDomain: "guide-a370b.firebaseapp.com",
   projectId: "guide-a370b",
-  storageBucket: "guide-a370b.appspot.com",  // 🔁 Endret her
-  messagingSenderId: "549286938289",
-  appId: "1:549286938289:web:8c2140e3995143388a0490"
+  storageBucket: "guide-a370b.appspot.com",
+  messagingSenderId: "xxx",
+  appId: "xxx"
 };
+
+export default firebaseConfig;
 
 
 // Initialiser Firebase
