@@ -15,59 +15,56 @@
   <p id="status"></p>
 
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-functions.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-functions-compat.js"></script>
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // 🔐 Konfigurasjon
-      const firebaseConfig = {
-        apiKey: "AIzaSyAuERwFxQsdSAUdBMbcKBmwtrYlTFQNp4U",
-        authDomain: "guide-a370b.firebaseapp.com",
-        projectId: "guide-a370b",
-        storageBucket: "guide-a370b.appspot.com",
-        messagingSenderId: "549286938289",
-        appId: "1:549286938289:web:8c2140e3995143388a0490"
-      };
+    // 🔐 Firebase-konfigurasjon
+    const firebaseConfig = {
+      apiKey: "AIzaSyAuERwFxQsdSAUdBMbcKBmwtrYlTFQNp4U",
+      authDomain: "guide-a370b.firebaseapp.com",
+      projectId: "guide-a370b",
+      storageBucket: "guide-a370b.appspot.com",
+      messagingSenderId: "549286938289",
+      appId: "1:549286938289:web:8c2140e3995143388a0490"
+    };
 
-      // 🚀 Initialiser Firebase
-      firebase.initializeApp(firebaseConfig);
-      const auth = firebase.auth();
-      const functions = firebase.functions();
+    // 🚀 Initialiser Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const functions = firebase.functions();
 
-      // 🧍 Krev innlogging
-      auth.onAuthStateChanged(user => {
-        if (!user) {
-          alert("Du må være logget inn. Vennligst logg inn først.");
-        } else {
-          console.log("Logget inn som:", user.email);
-        }
-      });
+    // 🧍 Krev innlogging
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        alert("Du må være logget inn. Vennligst logg inn først.");
+      } else {
+        console.log("Logget inn som:", user.email);
+      }
+    });
 
-      // 🧠 Funksjon for å sette admin
-      async function setAdmin() {
-        const uid = document.getElementById('uid').value;
-        const status = document.getElementById('status');
+    // 🚀 Kall funksjonen
+    async function setAdmin() {
+      const uid = document.getElementById('uid').value;
+      const status = document.getElementById('status');
 
-        if (!uid) {
-          status.innerText = '❗ Skriv inn en UID.';
-          return;
-        }
-
-        try {
-          const callable = functions.httpsCallable('setAdminClaim');
-          const result = await callable({ uid });
-          status.innerText = `✅ isAdmin satt for UID: ${uid}`;
-        } catch (error) {
-          console.error(error);
-          status.innerText = '❌ Feil: ' + error.message;
-        }
+      if (!uid) {
+        status.innerText = '❗ Du må skrive inn en UID.';
+        return;
       }
 
-      // 📌 Koble til knapp
-      document.getElementById('submitBtn').addEventListener('click', setAdmin);
-    });
+      try {
+        const callable = functions.httpsCallable('setAdminClaim');
+        const result = await callable({ uid });
+        status.innerText = `✅ isAdmin satt for UID: ${uid}`;
+      } catch (error) {
+        console.error(error);
+        status.innerText = '❌ Feil: ' + error.message;
+      }
+    }
+
+    document.getElementById('submitBtn').addEventListener('click', setAdmin);
   </script>
 </body>
 </html>
