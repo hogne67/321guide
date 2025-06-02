@@ -3,55 +3,71 @@
 <head>
   <meta charset="UTF-8" />
   <title>Sett admin-rettighet</title>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-functions.js"></script>
-  <script src="/publisher/firebase-init.js"></script>
 </head>
 <body>
   <h2>Sett admin-rettighet</h2>
   <p>Du må være logget inn som admin for å utføre dette.</p>
 
   <label for="uid">Firebase UID:</label>
-  <input type="text" id="uid" placeholder="f.eks. 3kFJYHkqwOZw..." />
+  <input type="text" id="uid" placeholder="f.eks. abcd1234UID..." />
   <button onclick="setAdmin()">Sett isAdmin = true</button>
 
   <p id="status"></p>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-functions.js"></script>
+  <!-- Firebase SDK-er -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-functions.js"></script>
 
-<!-- Initialiser Firebase før du bruker det -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
-  import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js";
-  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-functions.js";
-  import firebaseConfig from "../firebase-init.js"; // Du kan også legge konfig direkte her
+  <script>
+    // 🔐 Firebase-konfigurasjon for guide-a370b
+    const firebaseConfig = {
+      apiKey: "AIzaSyAuERwFxQsdSAUdBMbcKBmwtrYlTFQNp4U",
+      authDomain: "guide-a370b.firebaseapp.com",
+      projectId: "guide-a370b",
+      storageBucket: "guide-a370b.appspot.com",
+      messagingSenderId: "549286938289",
+      appId: "1:549286938289:web:8c2140e3995143388a0490"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const functions = getFunctions(app);
+    // 🔄 Initialiser Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const functions = firebase.functions();
 
-  window.setAdmin = async function () {
-    const uid = document.getElementById('uid').value;
-    const status = document.getElementById('status');
+    // 👤 Krev pålogging
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        alert("Du må være logget inn. Vennligst logg inn først.");
+        // Optional: redirect to login.html
+      } else {
+        console.log("Innlogget som:", user.email);
+      }
+    });
 
-    if (!uid) {
-      status.innerText = '❗ Skriv inn en UID først.';
-      return;
+    // 🚀 Kjør funksjonen
+    async function setAdmin() {
+      const uid = document.getElementById('uid').value;
+      const status = document.getElementById('status');
+
+      if (!uid) {
+        status.innerText = '❗ Du må skrive inn en UID.';
+        return;
+      }
+
+      try {
+        const callable = functions.httpsCallable('setAdminClaim');
+        const result = await callable({ uid });
+        status.innerText = `✅ isAdmin satt for UID: ${uid}`;
+      } catch (error) {
+        console.error(error);
+        status.innerText = '❌ Feil: ' + error.message;
+      }
     }
+  </script>
+</body>
+</html>
 
-    try {
-      const callable = httpsCallable(functions, 'setAdminClaim');
-      const result = await callable({ uid });
-      status.innerText = `✅ isAdmin satt for UID: ${uid}`;
-    } catch (error) {
-      console.error(error);
-      status.innerText = '❌ Feil: ' + error.message;
-    }
-  };
-</script>
 
 </body>
 </html>
