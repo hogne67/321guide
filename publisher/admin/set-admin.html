@@ -18,23 +18,40 @@
 
   <p id="status"></p>
 
-  <script>
-    const functions = firebase.functions();
+<script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-functions.js"></script>
 
-    async function setAdmin() {
-      const uid = document.getElementById('uid').value;
-      const status = document.getElementById('status');
-      if (!uid) return status.innerText = '❗ Skriv inn en UID først.';
+<!-- Initialiser Firebase før du bruker det -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js";
+  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-functions.js";
+  import firebaseConfig from "../firebase-init.js"; // Du kan også legge konfig direkte her
 
-      try {
-        const callable = functions.httpsCallable('setAdminClaim');
-        const result = await callable({ uid });
-        status.innerText = `✅ isAdmin satt for UID: ${uid}`;
-      } catch (error) {
-        console.error(error);
-        status.innerText = '❌ Feil: ' + error.message;
-      }
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const functions = getFunctions(app);
+
+  window.setAdmin = async function () {
+    const uid = document.getElementById('uid').value;
+    const status = document.getElementById('status');
+
+    if (!uid) {
+      status.innerText = '❗ Skriv inn en UID først.';
+      return;
     }
-  </script>
+
+    try {
+      const callable = httpsCallable(functions, 'setAdminClaim');
+      const result = await callable({ uid });
+      status.innerText = `✅ isAdmin satt for UID: ${uid}`;
+    } catch (error) {
+      console.error(error);
+      status.innerText = '❌ Feil: ' + error.message;
+    }
+  };
+</script>
+
 </body>
 </html>
