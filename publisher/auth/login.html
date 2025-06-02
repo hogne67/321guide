@@ -1,62 +1,39 @@
 <!DOCTYPE html>
-<html lang="no">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Logg inn</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f0f0;
-      display: flex;
-      height: 100vh;
-      align-items: center;
-      justify-content: center;
-    }
-    form {
-      background: white;
-      padding: 2rem;
-      border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-    input {
-      display: block;
-      margin-bottom: 1rem;
-      padding: 0.5rem;
-      width: 100%;
-    }
-    button {
-      padding: 0.5rem 1rem;
-    }
-  </style>
+  <title>Login</title>
 </head>
 <body>
-  <form id="loginForm">
-    <h2>Logg inn</h2>
-    <input type="email" id="email" placeholder="E-post" required>
-    <input type="password" id="password" placeholder="Passord" required>
-    <button type="submit">Logg inn</button>
-    <p id="error" style="color: red;"></p>
-  </form>
+  <h2>Logg inn</h2>
+  <input type="email" id="email" placeholder="E-post">
+  <input type="password" id="password" placeholder="Passord">
+  <button onclick="login()">Logg inn</button>
 
-  <script type="module">
-    import { auth } from "../firebase-init.js";
-    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "DIN_API_KEY",
+      authDomain: "guide-a370b.firebaseapp.com",
+      projectId: "guide-a370b",
+      storageBucket: "guide-a370b.appspot.com",
+      messagingSenderId: "DIN_SENDER_ID",
+      appId: "DIN_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
 
-    const form = document.getElementById("loginForm");
-    const errorEl = document.getElementById("error");
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
 
       try {
-        await signInWithEmailAndPassword(auth, email, password);
-        window.location.href = "../admin/admin-all-routes.html";
-      } catch (err) {
-        errorEl.textContent = "Feil e-post eller passord.";
+        const result = await auth.signInWithEmailAndPassword(email, password);
+        alert("✅ Logget inn som " + result.user.email);
+      } catch (error) {
+        alert("❌ Feil: " + error.message);
       }
-    });
+    }
   </script>
 </body>
 </html>
